@@ -97,4 +97,4 @@ def get_data(source, method):
                 'street': street,
                 'house': house}
 
-# print(get_data('Москва, Таганский, Большой Факельный переулок, 24,', 'all_data'))
+# print(get_data('Алтайскийй край', 'region_city'))

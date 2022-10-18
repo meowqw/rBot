@@ -9,7 +9,7 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.dispatcher import FSMContext
 import config
-from db import db, Users, Objects, AccessKeys, app
+from db import db, Users, Objects, AccessKeys, app, Chats
 from aiogram.types import ParseMode
 from aiogram.utils.markdown import link
 import logging
@@ -47,6 +47,7 @@ class userForm(StatesGroup):
     key = State()
     region = State()
     city = State()
+
 
 # form objectsForm
 
@@ -181,12 +182,24 @@ async def process_user_city_invalid(message: types.Message):
 async def process_city(message: types.Message, state: FSMContext):
     """USER CITY STATE"""
 
+    links = types.InlineKeyboardMarkup(row_width=2)
+    
     msg = await bot.send_message(message.chat.id, config.OBJECT_TEXT['objects']['loading'])
 
     async with state.proxy() as data:
         city = get_data(f"{data['region']}, {message.text}", "region_city")
         data['city'] = city['city']
         data['region'] = city['region']
+
+        with app.app_context():
+            # get chat
+            chat = Chats.query.filter_by(region=data['region']).first()
+
+        # links buttons
+        links.add(types.InlineKeyboardButton('Бот для бродажи', url=config.BUY_LINK))
+        links.add(types.InlineKeyboardButton('Бот для покупки', url=config.SALE_LINK))
+        links.add(types.InlineKeyboardButton('Ваш чат', url=chat.link))
+
         
         try:
             login = message.chat.username
@@ -224,11 +237,13 @@ async def process_city(message: types.Message, state: FSMContext):
                 md.text('Ключ: ', md.bold(data['key'])),
                 md.text('Регион: ', md.bold(data['region'])),
                 md.text('Город: ', md.bold(data['city'])),
+                md.text(),
                 md.text(
                     md.bold(config.OBJECT_TEXT['user']['finish_reg_text'])),
                 sep='\n',
             ),
             parse_mode=ParseMode.MARKDOWN,
+            reply_markup=links,
         )
         # with app.app_context():
         #     access_key = AccessKeys.query.filter_by(key=data['key']).first()
@@ -237,6 +252,8 @@ async def process_city(message: types.Message, state: FSMContext):
 
     # finish state
     await state.finish()
+
+    # send info about chat and bot
 
 # CHECK AUTH USER
 
@@ -262,6 +279,7 @@ async def process_auth(message: types.Message):
 @dp.message_handler(lambda message: get_user_(message.chat.id) == None
                     and message.text not in [config.OBJECT_TEXT['main'][i] for i in config.OBJECT_TEXT['main']] and 
                     message.text not in [config.OBJECT_TEXT['notification'][i] for i in config.OBJECT_TEXT['notification']])
+                    
 async def process_not_auth(message: types.Message):
     """USER NOT AUTH"""
     markup = types.ReplyKeyboardRemove()
@@ -369,72 +387,6 @@ async def callback_update_my_profile(call: types.CallbackQuery):
 
 # -------------------- FEED -----------------------
     
-def get_result_objects(id):
-    
-    filter_region = FILTER[id]['region']
-    filter_city = FILTER[id]['city']
-    filter_area = FILTER[id]['area']
-    filter_price = FILTER[id]['price']
-    filter_rooms = FILTER[id]['rooms']
-
-    res_objects = []
-
-    # true true true
-    if filter_area != 'Не выбрано' and filter_rooms != 'Не выбрано' and filter_city != 'Не выбрано':
-        with app.app_context():
-            objects = Objects.query.filter_by(
-                region=filter_region, area=filter_area, rooms=filter_rooms, city=filter_city).all()
-
-    # true false false
-    elif filter_area != 'Не выбрано' and filter_rooms == 'Не выбрано' and filter_city == 'Не выбрано':
-        with app.app_context():
-            objects = Objects.query.filter_by(
-                region=filter_region, area=filter_area).all()
-
-    # false true false
-    elif filter_area == 'Не выбрано' and filter_rooms != 'Не выбрано' and filter_city == 'Не выбрано':
-        with app.app_context():
-            objects = Objects.query.filter_by(
-                region=filter_region, rooms=filter_rooms).all()
-
-    # false false true
-    elif filter_area == 'Не выбрано' and filter_rooms == 'Не выбрано' and filter_city != 'Не выбрано':
-        with app.app_context():
-            objects = Objects.query.filter_by(
-                region=filter_region, city=filter_city).all()
-
-    # true true false
-    elif filter_area != 'Не выбрано' and filter_rooms != 'Не выбрано' and filter_city == 'Не выбрано':
-        with app.app_context():
-            objects = Objects.query.filter_by(
-                region=filter_region, area=filter_area, rooms=filter_rooms).all()
-
-    # true false true
-    elif filter_area != 'Не выбрано' and filter_rooms == 'Не выбрано' and filter_city != 'Не выбрано':
-        with app.app_context():
-            objects = Objects.query.filter_by(
-                region=filter_region, area=filter_area, city=filter_city).all()
-
-    # false true true
-    elif filter_area == 'Не выбрано' and filter_rooms != 'Не выбрано' and filter_city != 'Не выбрано':
-        with app.app_context():
-            objects = Objects.query.filter_by(
-                region=filter_region, rooms=filter_rooms, city=filter_city).all()
-
-    # false false false
-    elif filter_area == 'Не выбрано' and filter_rooms == 'Не выбрано' and filter_city == 'Не выбрано':
-        with app.app_context():
-            objects = Objects.query.filter_by(region=filter_region).all()
-
-    if filter_price != 'Не выбрано':
-        for i in objects:
-            if int(filter_price['max']) >= int(i.price) >= int(filter_price['min']):
-                res_objects.append(i)
-    else:
-        res_objects = objects
-
-    return res_objects
-
 
 def render_all_feed(obj):
     """FEED. RENDER ALL OBJECTS"""
@@ -447,96 +399,6 @@ def render_all_feed(obj):
 
     feed_keyboard.add(*buttons)
     return feed_keyboard
-
-
-def render_filter_button(id):
-    """FEED. RENDER FILTER BUTTONS"""
-    filter_items_keyboard = types.InlineKeyboardMarkup(
-        resize_keyboard=True, selective=True, row_width=1)
-
-    if id in FILTER:
-        with app.app_context():
-            user = Users.query.filter_by(id=id).first()
-
-        if 'region' in FILTER[id]:
-            current_region = FILTER[id]['region']
-        else:
-            # user city
-            current_region = user.region
-
-        if 'city' in FILTER[id]:
-            current_city = FILTER[id]['city']
-        else:
-            # user city
-            current_city = 'Не выбрано'
-
-        if 'area' in FILTER[id]:
-            current_area = FILTER[id]['area']
-        else:
-            current_area = 'Не выбрано'
-
-        if 'rooms' in FILTER[id]:
-            current_rooms = FILTER[id]['rooms']
-        else:
-            current_rooms = 'Не выбрано'
-
-        if 'price' in FILTER[id]:
-
-            try:
-                current_price = FILTER[id]['price']['text']
-            except Exception as e:
-                current_price = 'Не выбрано'
-        else:
-            current_price = 'Не выбрано'
-
-        if 'count' in FILTER[id]:
-            current_count = len(get_result_objects(id))
-        else:
-            with app.app_context():
-                current_count = len(
-                    Objects.query.filter_by(region=current_region).all())
-    else:
-
-        # default user city and region
-
-        with app.app_context():
-            user = Users.query.filter_by(id=id).first()
-        current_region = user.region
-        current_city = 'Не выбрано'
-        current_area = 'Не выбрано'
-        current_rooms = 'Не выбрано'
-        current_price = 'Не выбрано'
-        with app.app_context():
-            current_count = len(Objects.query.filter_by(city=current_city).all())
-
-        FILTER[id] = {'city': current_city, 'area': current_area,
-                      'rooms': current_rooms, 'price': current_price,
-                      'count': current_count, 'region': current_region}
-
-    buttons = [
-        types.InlineKeyboardButton(
-            f"{config.OBJECT_TEXT['feed']['region_btn']}: {current_region}", callback_data='filter_item_region'),
-        types.InlineKeyboardButton(
-            f"{config.OBJECT_TEXT['feed']['city_btn']}: {current_city}", callback_data='filter_item_city'),
-        types.InlineKeyboardButton(
-            f"{config.OBJECT_TEXT['feed']['area_btn']}: {current_area}", callback_data='filter_item_area'),
-        types.InlineKeyboardButton(
-            f"{config.OBJECT_TEXT['feed']['rooms_btn']}: {current_rooms}", callback_data='filter_item_rooms'),
-        types.InlineKeyboardButton(
-            f"{config.OBJECT_TEXT['feed']['price']}: {current_price}", callback_data='filter_item_price')
-    ]
-    
-    filter_items_keyboard.add(*buttons)
-    if SWITCH[id]['current'] == 'objects':
-        filter_items_keyboard.row(types.InlineKeyboardButton(
-            f"{config.OBJECT_TEXT['feed']['feed_ok_filter']} ({current_count})", callback_data='filter_item_ok'), 
-                                  types.InlineKeyboardButton(f"{config.OBJECT_TEXT['feed']['clear']}", callback_data='filter_item_clear'))
-        
-    else:
-        filter_items_keyboard.row(types.InlineKeyboardButton(f"{config.OBJECT_TEXT['notification']['filter_btn_ok']}", callback_data='filter_notification_ok'))
-    
-    
-    return filter_items_keyboard
 
 # -------------------- MY OBJECTS ------------------------
 
@@ -752,13 +614,15 @@ async def process_update(message: types.Message, state: FSMContext):
             
             # update profile
             if type_ == 'my':
-                db.engine.execute(f"UPDATE users SET {action}={message.text} WHERE id={message.chat.id};")
+                db.engine.execute(f"UPDATE users SET {action}='{message.text}' WHERE id={message.chat.id};")
                 db.session.commit()
             
             # update objects
             else:
-                db.engine.execute(f"UPDATE objects SET {action}={message.text} WHERE id={id};")
+                db.engine.execute(f"UPDATE objects SET {action}='{message.text}' WHERE id={id};")
                 db.session.commit()
+            
+                print('ok')
 
 
     # finish state

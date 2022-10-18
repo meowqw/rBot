@@ -61,9 +61,16 @@ class UserAdmin(db.Model, UserMixin):
     login = db.Column(db.String(128), nullable=False, unique=True)
     password = db.Column(db.String(128), nullable=False)
 
+# DB model Chats
+class Chats(db.Model):
+    id = db.Column(db.Integer(), primary_key=True)
+    region = db.Column(db.String(200), nullable=True)
+    link = db.Column(db.String(200), nullable=True)
+    datetime = db.Column(db.DateTime, nullable=False, default=datetime.now())
+
 with app.app_context():
     app.config['SESSION_TYPE'] = 'filesystem'
     app.config['JSON_AS_ASCII'] = False
-    # db.create_all()
+    db.create_all()
     
     # Session(app)

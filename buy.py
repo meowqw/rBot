@@ -16,7 +16,7 @@ import logging
 import aiogram.utils.markdown as md
 import datetime
 from yandex import get_data
-from bot import render_all_objects, UserData, Notification, render_filter_button, get_result_objects, get_user_
+from bot import render_all_objects, UserData, Notification, get_user_
 
 OBJECTS = {}
 FILTER = {}
@@ -32,15 +32,9 @@ bot = Bot(token=config.TOKEN_BUY)
 storage = MemoryStorage()
 dp = Dispatcher(bot, storage=storage)
 
-@dp.message_handler(Text(equals=config.OBJECT_TEXT['main']['cancel_btn'], ignore_case=True), state='*')
-async def cancel_handler(message: types.Message, state: FSMContext):
-    """CANCEL HANDLER"""
-    current_state = await state.get_state()
-    if current_state is None:
-        return
 
-    await state.finish()
-    await bot.send_message(message.chat.id, config.OBJECT_TEXT['main']['cancel_ok'], reply_markup=main_keyboard)
+
+# CHECK AUTH USER
 
 # main keyboard
 main_keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -69,6 +63,20 @@ async def process_not_auth(message: types.Message):
         parse_mode=ParseMode.MARKDOWN,
     )
 
+
+@dp.message_handler(Text(equals=config.OBJECT_TEXT['main']['back_btn'], ignore_case=True), state='*')
+async def back_handler(message: types.Message,  state: FSMContext):
+    """BACK HANDLER"""
+
+    await bot.send_message(message.chat.id, config.OBJECT_TEXT['main']['back_ok'], reply_markup=main_keyboard)
+
+    current_state = await state.get_state()
+    if current_state is None:
+        return
+
+    await state.finish()
+
+
 @dp.message_handler(Text(equals=config.OBJECT_TEXT['main']['feed_btn']))
 async def function_feed(message: types.Message):
     """FUNCTION FEED"""
@@ -93,8 +101,73 @@ async def function_feed(message: types.Message):
 
     OBJECTS[message.chat.id] = {}
 
+# ------------------ FILTER AND NOTIFICATION FILTER----------------------
 
+def get_result_objects(id):
+    
+    filter_region = FILTER[id]['region']
+    filter_city = FILTER[id]['city']
+    filter_area = FILTER[id]['area']
+    filter_price = FILTER[id]['price']
+    filter_rooms = FILTER[id]['rooms']
 
+    res_objects = []
+
+    # true true true
+    if filter_area != 'Не выбрано' and filter_rooms != 'Не выбрано' and filter_city != 'Не выбрано':
+        with app.app_context():
+            objects = Objects.query.filter_by(
+                region=filter_region, area=filter_area, rooms=filter_rooms, city=filter_city).all()
+
+    # true false false
+    elif filter_area != 'Не выбрано' and filter_rooms == 'Не выбрано' and filter_city == 'Не выбрано':
+        with app.app_context():
+            objects = Objects.query.filter_by(
+                region=filter_region, area=filter_area).all()
+
+    # false true false
+    elif filter_area == 'Не выбрано' and filter_rooms != 'Не выбрано' and filter_city == 'Не выбрано':
+        with app.app_context():
+            objects = Objects.query.filter_by(
+                region=filter_region, rooms=filter_rooms).all()
+
+    # false false true
+    elif filter_area == 'Не выбрано' and filter_rooms == 'Не выбрано' and filter_city != 'Не выбрано':
+        with app.app_context():
+            objects = Objects.query.filter_by(
+                region=filter_region, city=filter_city).all()
+
+    # true true false
+    elif filter_area != 'Не выбрано' and filter_rooms != 'Не выбрано' and filter_city == 'Не выбрано':
+        with app.app_context():
+            objects = Objects.query.filter_by(
+                region=filter_region, area=filter_area, rooms=filter_rooms).all()
+
+    # true false true
+    elif filter_area != 'Не выбрано' and filter_rooms == 'Не выбрано' and filter_city != 'Не выбрано':
+        with app.app_context():
+            objects = Objects.query.filter_by(
+                region=filter_region, area=filter_area, city=filter_city).all()
+
+    # false true true
+    elif filter_area == 'Не выбрано' and filter_rooms != 'Не выбрано' and filter_city != 'Не выбрано':
+        with app.app_context():
+            objects = Objects.query.filter_by(
+                region=filter_region, rooms=filter_rooms, city=filter_city).all()
+
+    # false false false
+    elif filter_area == 'Не выбрано' and filter_rooms == 'Не выбрано' and filter_city == 'Не выбрано':
+        with app.app_context():
+            objects = Objects.query.filter_by(region=filter_region).all()
+
+    if filter_price != 'Не выбрано':
+        for i in objects:
+            if int(filter_price['max']) >= int(i.price) >= int(filter_price['min']):
+                res_objects.append(i)
+    else:
+        res_objects = objects
+
+    return res_objects
 
 
 async def render_item(id, item):
@@ -229,6 +302,7 @@ async def set_item_filter_notification(id, item):
     NOTIFICATION[id]['current_filter_msg'] = msg
     await Notification.data.set()
     
+
 @dp.message_handler(lambda message: len(message.text) > 0, state=Notification.data)
 async def process_value_notification(message: types.Message, state: FSMContext):
     """VALUE FOR NOTIFICATION PROCESS"""
@@ -429,8 +503,9 @@ async def callback_filter(call: types.CallbackQuery):
         
         
         print(FILTER[call.message.chat.id])
-        user.notification = {'status': True, 'filter': FILTER[call.message.chat.id]}
-        db.session.commit()
+        with app.app_context():
+            user.notification = {'status': True, 'filter': FILTER[call.message.chat.id]}
+            db.session.commit()
         
         await bot.send_message(call.message.chat.id, config.OBJECT_TEXT['notification']['filter_ok'])
             
@@ -541,6 +616,97 @@ async def notification_filter_handler(message: types.Message,  state: FSMContext
     
     msg = await bot.send_message(message.chat.id, config.OBJECT_TEXT['notification']['filter'], reply_markup=render_filter_button(message.chat.id))
     FILTER[message.chat.id]['filter_menu'] = msg
+
+
+def render_filter_button(id):
+    """FEED. RENDER FILTER BUTTONS"""
+    filter_items_keyboard = types.InlineKeyboardMarkup(
+        resize_keyboard=True, selective=True, row_width=1)
+
+    if id in FILTER:
+        with app.app_context():
+            user = Users.query.filter_by(id=id).first()
+
+        if 'region' in FILTER[id]:
+            current_region = FILTER[id]['region']
+        else:
+            # user city
+            current_region = user.region
+
+        if 'city' in FILTER[id]:
+            current_city = FILTER[id]['city']
+        else:
+            # user city
+            current_city = 'Не выбрано'
+
+        if 'area' in FILTER[id]:
+            current_area = FILTER[id]['area']
+        else:
+            current_area = 'Не выбрано'
+
+        if 'rooms' in FILTER[id]:
+            current_rooms = FILTER[id]['rooms']
+        else:
+            current_rooms = 'Не выбрано'
+
+        if 'price' in FILTER[id]:
+
+            try:
+                current_price = FILTER[id]['price']['text']
+            except Exception as e:
+                current_price = 'Не выбрано'
+        else:
+            current_price = 'Не выбрано'
+
+        if 'count' in FILTER[id]:
+            current_count = len(get_result_objects(id))
+        else:
+            with app.app_context():
+                current_count = len(
+                    Objects.query.filter_by(region=current_region).all())
+    else:
+
+        # default user city and region
+
+        with app.app_context():
+            user = Users.query.filter_by(id=id).first()
+        current_region = user.region
+        current_city = 'Не выбрано'
+        current_area = 'Не выбрано'
+        current_rooms = 'Не выбрано'
+        current_price = 'Не выбрано'
+        with app.app_context():
+            current_count = len(Objects.query.filter_by(city=current_city).all())
+
+        FILTER[id] = {'city': current_city, 'area': current_area,
+                      'rooms': current_rooms, 'price': current_price,
+                      'count': current_count, 'region': current_region}
+
+    buttons = [
+        types.InlineKeyboardButton(
+            f"{config.OBJECT_TEXT['feed']['region_btn']}: {current_region}", callback_data='filter_item_region'),
+        types.InlineKeyboardButton(
+            f"{config.OBJECT_TEXT['feed']['city_btn']}: {current_city}", callback_data='filter_item_city'),
+        types.InlineKeyboardButton(
+            f"{config.OBJECT_TEXT['feed']['area_btn']}: {current_area}", callback_data='filter_item_area'),
+        types.InlineKeyboardButton(
+            f"{config.OBJECT_TEXT['feed']['rooms_btn']}: {current_rooms}", callback_data='filter_item_rooms'),
+        types.InlineKeyboardButton(
+            f"{config.OBJECT_TEXT['feed']['price']}: {current_price}", callback_data='filter_item_price')
+    ]
+    
+    filter_items_keyboard.add(*buttons)
+    if SWITCH[id]['current'] == 'objects':
+        filter_items_keyboard.row(types.InlineKeyboardButton(
+            f"{config.OBJECT_TEXT['feed']['feed_ok_filter']} ({current_count})", callback_data='filter_item_ok'), 
+                                  types.InlineKeyboardButton(f"{config.OBJECT_TEXT['feed']['clear']}", callback_data='filter_item_clear'))
+        
+    else:
+        filter_items_keyboard.row(types.InlineKeyboardButton(f"{config.OBJECT_TEXT['notification']['filter_btn_ok']}", callback_data='filter_notification_ok'))
+    
+    
+    return filter_items_keyboard
+
 
 if __name__ == '__main__':
     executor.start_polling(dp, skip_updates=True)
