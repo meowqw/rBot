@@ -192,8 +192,8 @@ async def process_city(message: types.Message, state: FSMContext):
         data['region'] = city['region']
 
          # links buttons
-        links.add(types.InlineKeyboardButton('Бот для бродажи', url=config.BUY_LINK))
-        links.add(types.InlineKeyboardButton('Бот для покупки', url=config.SALE_LINK))
+        links.add(types.InlineKeyboardButton('Бот для бродажи', url=config.SALE_LINK))
+        links.add(types.InlineKeyboardButton('Бот для покупки', url=config.BUY_LINK))
         
         
         with app.app_context():
