@@ -17,7 +17,7 @@ import aiogram.utils.markdown as md
 import datetime
 from yandex import get_data
 from bot import objectsForm, price_processing, main_keyboard, get_user_
-from sale import bot as sale_bot
+from buy import bot as buy_bot
 
 logging.basicConfig(level=logging.INFO)
 
@@ -449,9 +449,9 @@ async def notification_maling(id, object_info, object):
             if notification_user['status'] == True:
                 if notification_user['filter'] != None:
                     if maling_filter(notification_user, object) == True:
-                        await sale_bot.send_message(user.id, f"{config.OBJECT_TEXT['notification']['new_object']}\n\n{object_info}", parse_mode=ParseMode.MARKDOWN)
+                        await buy_bot.send_message(user.id, f"{config.OBJECT_TEXT['notification']['new_object']}\n\n{object_info}", parse_mode=ParseMode.MARKDOWN)
                 else:
-                    await sale_bot.send_message(user.id, f"{config.OBJECT_TEXT['notification']['new_object']}\n\n{object_info}", parse_mode=ParseMode.MARKDOWN)
+                    await buy_bot.send_message(user.id, f"{config.OBJECT_TEXT['notification']['new_object']}\n\n{object_info}", parse_mode=ParseMode.MARKDOWN)
                     
                     
 
