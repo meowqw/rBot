@@ -191,18 +191,18 @@ async def process_city(message: types.Message, state: FSMContext):
         data['city'] = city['city']
         data['region'] = city['region']
 
+         # links buttons
+        links.add(types.InlineKeyboardButton('Бот для бродажи', url=config.BUY_LINK))
+        links.add(types.InlineKeyboardButton('Бот для покупки', url=config.SALE_LINK))
+        
         
         with app.app_context():
             # get chat
             try:
-                chat = Chats.query.filter_by(region=data['region']).first().link
+                chat = Chats.query.filter_by(region=data['region']).first()
+                links.add(types.InlineKeyboardButton('Ваш чат', url=chat.link))
             except Exception as e:
-                chat = 'Данных нет'
-
-        # links buttons
-        links.add(types.InlineKeyboardButton('Бот для бродажи', url=config.BUY_LINK))
-        links.add(types.InlineKeyboardButton('Бот для покупки', url=config.SALE_LINK))
-        links.add(types.InlineKeyboardButton('Ваш чат', url=chat))
+                pass
 
         
         try:
