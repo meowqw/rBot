@@ -192,7 +192,7 @@ async def process_city(message: types.Message, state: FSMContext):
         data['region'] = city['region']
 
          # links buttons
-        links.add(types.InlineKeyboardButton('Бот для бродажи', url=config.SALE_LINK))
+        links.add(types.InlineKeyboardButton('Бот для продажи', url=config.SALE_LINK))
         links.add(types.InlineKeyboardButton('Бот для покупки', url=config.BUY_LINK))
         
         
@@ -235,7 +235,7 @@ async def process_city(message: types.Message, state: FSMContext):
             md.text(
                 md.text(config.OBJECT_TEXT['user']['finish_registration']),
                 md.text('ФИО: ', md.bold(data['fullname'])),
-                md.text('Номер: ', md.bold(data['phone'])),
+                md.text('Номер: ', md.text(data['phone'])),
                 md.text('Стаж: ', md.bold(data['experience'])),
                 md.text('Место работы: ', md.bold(data['job'])),
                 md.text('Ключ: ', md.bold(data['key'])),
@@ -347,7 +347,7 @@ async def function_my_settings(message: types.Message):
                 md.text(md.bold(config.OBJECT_TEXT['main']['user_info'])),
                 md.text(),
                 md.text('ФИО: ', md.bold(user.fullname)),
-                md.text('Номер: ', md.bold(user.phone)),
+                md.text('Номер: ', md.text(user.phone)),
                 md.text('Стаж: ', md.bold(user.experience)),
                 md.text('Место работы: ', md.bold(user.job)),
                 md.text('Ключ: ', md.bold(user.key)),
