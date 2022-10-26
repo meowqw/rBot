@@ -420,7 +420,24 @@ def render_all_objects(my_objects):
         
         object_control_keyboard = types.InlineKeyboardMarkup(
         resize_keyboard=True, selective=True)
-    
+        
+        with app.app_context():
+            user = Users.query.filter_by(id=object.user).first()
+            username = user.fullname.split(" ")
+            if len(username) > 2:
+                username = username[1]
+            else:
+                user = username[0]
+            
+            
+            contact_keybord = types.InlineKeyboardMarkup(
+            resize_keyboard=True, selective=True)
+            if user.login != None:
+                login_btn = types.InlineKeyboardButton(f'Написать ({username})', url=f'https://t.me/{user_login}')
+                contact_keybord.add(login_btn)
+
+
+        
         object_control_keyboard.add(*[
             types.InlineKeyboardButton(
                 f'⏱ Продлить', callback_data=f'extend_object_{object.id}'),
@@ -438,19 +455,18 @@ def render_all_objects(my_objects):
             md.text('Адрес: ', md.bold(object.address)),
             # md.text('Улица: ', md.bold(object.street)),
             md.text('Кол-во комнат: ', md.bold(object.rooms)),
-            md.text('Этаж: ', md.bold(object.stage)),
-            md.text('Описание: ', md.bold(object.description)),
+            md.text('Этаж: ', md.bold(object.stage) + '/' + md.bold(object.number_of_storeys)),
+            md.text('Описание: ', md.text(object.description)),
             md.text('Цена: ', price_processing(str(object.price)) + ' ₽'),
             md.text('Площадь: ', str(object.quadrature) + ' м²'),
             md.text('Тип недвижимости: ', md.bold(object.property_type)),
-            md.text('Этажность: ', md.bold(object.number_of_storeys)),
             md.text('Телефон: ', (f"[{object.phone}](tel:{object.phone})")),
             md.text('Дейтвительно до: ', (object.date_end.strftime("%d.%m.%Y, %H:%M:%S"))),
 
             sep='\n',
         )
         
-        objects.append([text, object_control_keyboard])
+        objects.append([text, object_control_keyboard, contact_keybord])
     
     return objects
         
@@ -661,7 +677,7 @@ async def process_update(message: types.Message, state: FSMContext):
                 md.text(md.bold(config.OBJECT_TEXT['main']['user_info'])),
                 md.text(),
                 md.text('ФИО: ', md.bold(user.fullname)),
-                md.text('Номер: ', md.bold(user.phone)),
+                md.text('Номер: ', md.text(user.phone)),
                 md.text('Стаж: ', md.bold(user.experience)),
                 md.text('Место работы: ', md.bold(user.job)),
                 md.text('Ключ: ', md.bold(user.key)),

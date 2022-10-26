@@ -353,6 +353,9 @@ async def callback_filter(call: types.CallbackQuery):
             await i.delete()
     except Exception as e:
             print(e)
+            
+    contact_keybord = types.InlineKeyboardMarkup(
+    resize_keyboard=True, selective=True)
 
     # switch yes/no
     if func_action == 'switch':
@@ -366,10 +369,22 @@ async def callback_filter(call: types.CallbackQuery):
         elif action == 'no':
             # get objects without filter
             with app.app_context():
-                object = Objects.query.all()
-            
-            for i in render_all_objects(object):
-                await bot.send_message(call.message.chat.id, i[0], parse_mode=ParseMode.MARKDOWN)
+                user = Users.query.filter_by(id=call.message.chat.id).first()
+                object = Objects.query.filter_by(region=user.region).all()
+
+                username = user.fullname.split(" ")
+                if len(username) > 2:
+                    username = username[1]
+
+                else:
+                    username = username[0]
+
+                if user.login != None:
+                    login_btn = types.InlineKeyboardButton(f'Написать ({username})', url=f'https://t.me/{user.login}')
+                    contact_keybord.add(login_btn)
+                
+                for i in render_all_objects(object):
+                    await bot.send_message(call.message.chat.id, i[0], parse_mode=ParseMode.MARKDOWN, reply_markup=contact_keybord)
 
     # filter items
     elif func_action == 'item':
@@ -414,7 +429,7 @@ async def callback_filter(call: types.CallbackQuery):
                 # objects_btn = await bot.send_message(call.message.chat.id, config.OBJECT_TEXT['feed']['objects_with_filter'], reply_markup=render_all_feed(res_objects))
                 FILTER[call.message.chat.id]['objects'] = []
                 for i in render_all_objects(res_objects):
-                    msg = await bot.send_message(call.message.chat.id, i[0], parse_mode=ParseMode.MARKDOWN)
+                    msg = await bot.send_message(call.message.chat.id, i[0], parse_mode=ParseMode.MARKDOWN, reply_markup=i[2])
                     
                     FILTER[call.message.chat.id]['objects'].append(msg)
             else:

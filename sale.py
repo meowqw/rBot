@@ -370,6 +370,10 @@ async def process_objects_phone(message: types.Message, state: FSMContext):
 
             db.session.add(object)
             db.session.commit()
+            
+            user = Users.query.filter_by(id=message.chat.id).first()
+            user_name = user.fullname
+            user_login = user.login
         
         object_info = md.text(
                 md.text('Регион: ', md.bold(data['region'])),
@@ -378,13 +382,11 @@ async def process_objects_phone(message: types.Message, state: FSMContext):
                 md.text('Адрес: ', md.bold(data['address'])),
                 # md.text('Улица: ', md.bold(data['street'])),
                 md.text('Кол-во комнат: ', md.bold(data['rooms'])),
-                md.text('Этаж: ', md.bold(data['stage'])),
-                md.text('Описание: ', md.bold(data['description'])),
+                md.text('Этаж: ', md.bold(data['stage']) + '/' + md.bold(data['number_of_storeys'])),
+                md.text('Описание: ', md.text(data['description'])),
                 md.text('Цена: ', price_processing(data['price']) + ' ₽'),
                 md.text('Площадь: ', data['quadrature'] + ' м²'),
                 md.text('Тип недвижимости: ', md.bold(data['property_type'])),
-                md.text('Этажность: ', md.bold(
-                    data['number_of_storeys'])),
                 md.text('Телефон: ', (f"[{data['phone']}](tel:{data['phone']})")),
                 sep='\n',)
 
@@ -400,7 +402,7 @@ async def process_objects_phone(message: types.Message, state: FSMContext):
     # finish state
     await state.finish()
     
-    await notification_maling(message.chat.id, object_info, object)
+    await notification_maling(message.chat.id, object_info, object, user_login, user_name)
     
 def maling_filter(notification, obj):
     # user notification filter settings
@@ -436,8 +438,24 @@ def maling_filter(notification, obj):
     return status
     
     
-async def notification_maling(id, object_info, object):
+async def notification_maling(id, object_info, object, user_login, user_name):
     """MALING NOTIFICATION"""
+    
+    username = user_name.split(" ")
+    if len(username) > 2:
+        username = username[1]
+    else:
+        user = username[0]
+
+
+    contact_keybord = types.InlineKeyboardMarkup(
+    resize_keyboard=True, selective=True)
+    if user_login != None:
+        login_btn = types.InlineKeyboardButton(f'Написать ({username})', url=f'https://t.me/{user_login}')
+        contact_keybord.add(login_btn)
+
+    
+    
     with app.app_context():
         users = Users.query.all()
     
