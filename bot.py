@@ -427,13 +427,13 @@ def render_all_objects(my_objects):
             if len(username) > 2:
                 username = username[1]
             else:
-                user = username[0]
+                username = username[0]
             
             
             contact_keybord = types.InlineKeyboardMarkup(
             resize_keyboard=True, selective=True)
             if user.login != None:
-                login_btn = types.InlineKeyboardButton(f'Написать ({username})', url=f'https://t.me/{user_login}')
+                login_btn = types.InlineKeyboardButton(f'Написать ({username})', url=f'https://t.me/{user.login}')
                 contact_keybord.add(login_btn)
 
 
