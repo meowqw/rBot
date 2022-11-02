@@ -1,5 +1,5 @@
 # *****************************
-# Bot for sale objects 
+# Bot for sale objects
 # *****************************
 
 from aiogram.utils import executor
@@ -16,7 +16,7 @@ import logging
 import aiogram.utils.markdown as md
 import datetime
 from yandex import get_data
-from bot import objectsForm, price_processing, main_keyboard, get_user_
+from bot import objectsForm, price_processing, main_keyboard, get_user_, current_print
 from buy import bot as buy_bot
 
 logging.basicConfig(level=logging.INFO)
@@ -25,6 +25,9 @@ logging.basicConfig(level=logging.INFO)
 bot = Bot(token=config.TOKEN_SALE)
 storage = MemoryStorage()
 dp = Dispatcher(bot, storage=storage)
+
+# state property type 
+STATES = {}
 
 
 @dp.message_handler(Text(equals=config.OBJECT_TEXT['main']['cancel_btn'], ignore_case=True), state='*')
@@ -43,7 +46,7 @@ main_keyboard.row(config.OBJECT_TEXT['main']['sale_btn'])
 
 
 @dp.message_handler(lambda message: get_user_(message.chat.id) != None
-                    and message.text not in [config.OBJECT_TEXT['main'][i] for i in config.OBJECT_TEXT['main']] and 
+                    and message.text not in [config.OBJECT_TEXT['main'][i] for i in config.OBJECT_TEXT['main']] and
                     message.text not in [config.OBJECT_TEXT['notification'][i] for i in config.OBJECT_TEXT['notification']])
 async def process_auth(message: types.Message):
     """USER AUTH"""
@@ -52,7 +55,7 @@ async def process_auth(message: types.Message):
 
 
 @dp.message_handler(lambda message: get_user_(message.chat.id) == None
-                    and message.text not in [config.OBJECT_TEXT['main'][i] for i in config.OBJECT_TEXT['main']] and 
+                    and message.text not in [config.OBJECT_TEXT['main'][i] for i in config.OBJECT_TEXT['main']] and
                     message.text not in [config.OBJECT_TEXT['notification'][i] for i in config.OBJECT_TEXT['notification']])
 async def process_not_auth(message: types.Message):
     """USER NOT AUTH"""
@@ -63,7 +66,6 @@ async def process_not_auth(message: types.Message):
         reply_markup=markup,
         parse_mode=ParseMode.MARKDOWN,
     )
-
 
 
 @dp.message_handler(Text(equals=config.OBJECT_TEXT['main']['sale_btn']))
@@ -143,13 +145,18 @@ async def process_address_invalid(message: types.Message):
 
 property_type_keyboard = types.InlineKeyboardMarkup(
     resize_keyboard=True, selective=True)
-property_type_btn_1 = types.InlineKeyboardButton('Вторичка', callback_data='property_type_btn_1')
-property_type_btn_2 = types.InlineKeyboardButton('Новострой', callback_data='property_type_btn_2')
-property_type_btn_3 = types.InlineKeyboardButton('Дом', callback_data='property_type_btn_3')
-property_type_btn_4 = types.InlineKeyboardButton('Земля', callback_data='property_type_btn_4')
+property_type_btn_1 = types.InlineKeyboardButton(
+    'Вторичка', callback_data='property_type_btn_1')
+property_type_btn_2 = types.InlineKeyboardButton(
+    'Новострой', callback_data='property_type_btn_2')
+property_type_btn_3 = types.InlineKeyboardButton(
+    'Дом', callback_data='property_type_btn_3')
+property_type_btn_4 = types.InlineKeyboardButton(
+    'Земля', callback_data='property_type_btn_4')
+property_type_btn_5 = types.InlineKeyboardButton(
+    'Комната', callback_data='property_type_btn_5')
 property_type_keyboard.add(property_type_btn_1, property_type_btn_2)
-property_type_keyboard.add(property_type_btn_3, property_type_btn_4)
-
+property_type_keyboard.add(property_type_btn_3, property_type_btn_4, property_type_btn_5)
 
 
 @dp.message_handler(lambda message: len(message.text) > 0, state=objectsForm.address)
@@ -192,7 +199,6 @@ async def process_objects_address(message: types.Message, state: FSMContext):
     await bot.send_message(message.chat.id, config.OBJECT_TEXT['objects']['enter_property_type'], reply_markup=property_type_keyboard)
 
 
-
 @dp.callback_query_handler(Text(startswith="property_type_btn_"), state=objectsForm.property_type)
 async def callbacks_property_type(call: types.CallbackQuery, state: FSMContext):
     """CALLBACK PROPERTY TYPE"""
@@ -206,33 +212,47 @@ async def callbacks_property_type(call: types.CallbackQuery, state: FSMContext):
         p_type = 'Дом'
     elif action == "4":
         p_type = 'Земля'
+    elif action == "5":
+        p_type = 'Комната'
 
     async with state.proxy() as data:
         data['property_type'] = p_type
+        
+        STATES[call.message.chat.id] = int(action)
 
     # start objects ownership type type state
-    await objectsForm.next()
-
+        
     await call.answer()
 
     await bot.send_message(call.message.chat.id, p_type)
-    
-    if action != '4':
+
+    if STATES[call.message.chat.id] in [1, 2, 3]:
         await bot.send_message(call.message.chat.id, config.OBJECT_TEXT['objects']['enter_rooms'])
-    else:
-        await bot.send_message(call.message.chat.id, config.OBJECT_TEXT['objects']['enter_no_rooms'])
+        await objectsForm.next()
+        
+    elif STATES[call.message.chat.id] in [4]:
+        await objectsForm.rooms.set()
+        await objectsForm.stage.set()
+        
+        await bot.send_message(call.message.chat.id, config.OBJECT_TEXT['objects']['enter_description'])
+        await objectsForm.next()
+        
+    elif STATES[call.message.chat.id] in [5]:
+        await objectsForm.rooms.set()
+        await bot.send_message(call.message.chat.id, config.OBJECT_TEXT['objects']['enter_description'])
+        await objectsForm.next()
 
+    
 
-@dp.message_handler(lambda message: not message.text.isdigit(), state=objectsForm.rooms)
+@dp.message_handler(lambda message: not message.text.isdigit() and STATES[message.chat.id] not in [4, 5], state=objectsForm.rooms)
 async def process_rooms_invalid(message: types.Message):
     return await message.reply(config.OBJECT_TEXT['objects']['exc_rooms'])
 
 
-@dp.message_handler(lambda message: message.text.isdigit(), state=objectsForm.rooms)
+@dp.message_handler(lambda message: message.text.isdigit() and STATES[message.chat.id] not in [4, 5], state=objectsForm.rooms)
 async def process_objects_rooms(message: types.Message, state: FSMContext):
     """OBJECTS ROOMS STATE"""
 
-    
     async with state.proxy() as data:
         type_ = data['property_type']
         if type_ != 'Земля':
@@ -240,21 +260,26 @@ async def process_objects_rooms(message: types.Message, state: FSMContext):
         else:
             data['rooms'] = 0
 
-    # start objects stage state
-    await objectsForm.next()
-    
-    if type_ != 'Земля':
-        await bot.send_message(message.chat.id, config.OBJECT_TEXT['objects']['enter_stage'])
+   
+
+    if STATES[message.chat.id] in [3, 4]:
+        await objectsForm.stage.set()
+        await bot.send_message(message.chat.id, config.OBJECT_TEXT['objects']['enter_description'])
+         # start description stage state
+        await objectsForm.next()
+        
     else:
-        await bot.send_message(message.chat.id, config.OBJECT_TEXT['objects']['enter_no_stage'])
+        await bot.send_message(message.chat.id, config.OBJECT_TEXT['objects']['enter_stage'])
+         # start objects stage state
+        await objectsForm.next()
+        
 
-
-@dp.message_handler(lambda message: not message.text.isdigit(), state=objectsForm.stage)
+@dp.message_handler(lambda message: not message.text.isdigit() and STATES[message.chat.id] not in [3, 4], state=objectsForm.stage)
 async def process_stage_invalid(message: types.Message):
     return await message.reply(config.OBJECT_TEXT['objects']['exc_stage'])
 
 
-@dp.message_handler(lambda message: message.text.isdigit(), state=objectsForm.stage)
+@dp.message_handler(lambda message: message.text.isdigit() and STATES[message.chat.id] not in [3, 4], state=objectsForm.stage)
 async def process_objects_stage(message: types.Message, state: FSMContext):
     """OBJECTS STAGE STATE"""
 
@@ -295,7 +320,7 @@ async def process_objects_price(message: types.Message, state: FSMContext):
 
     # start objects quadrature state
     await objectsForm.next()
-    
+
     await bot.send_message(message.chat.id, config.OBJECT_TEXT['objects']['enter_quadrature'])
 
 
@@ -312,36 +337,40 @@ async def process_objects_quadrature(message: types.Message, state: FSMContext):
         type_ = data['property_type']
         data['quadrature'] = message.text
 
-    # start objects property type state
-    await objectsForm.next()
     
-    if type_ != 'Земля':
-        await bot.send_message(message.chat.id, config.OBJECT_TEXT['objects']['enter_number_of_storeys'])
-    else:
-        await bot.send_message(message.chat.id, config.OBJECT_TEXT['objects']['no_enter_number_of_storeys'])
 
-    
-@dp.message_handler(lambda message: not message.text.isdigit(), state=objectsForm.number_of_storeys)
+    if STATES[message.chat.id] not in [4]:
+        await bot.send_message(message.chat.id, config.OBJECT_TEXT['objects']['enter_number_of_storeys'])
+        # start objects property type state
+        await objectsForm.next()
+    else:
+        await objectsForm.number_of_storeys.set()
+        await bot.send_message(message.chat.id, config.OBJECT_TEXT['objects']['enter_phone'])
+        await objectsForm.next()
+        
+
+
+@dp.message_handler(lambda message: not message.text.isdigit() and STATES[message.chat.id] not in [4], state=objectsForm.number_of_storeys)
 async def process_number_of_storeys_invalid(message: types.Message):
     return await message.reply(config.OBJECT_TEXT['objects']['exc_price'])
 
-@dp.message_handler(lambda message: message.text.isdigit(), state=objectsForm.number_of_storeys)
+
+@dp.message_handler(lambda message: message.text.isdigit() and STATES[message.chat.id] not in [4], state=objectsForm.number_of_storeys)
 async def process_number_of_storeys(message: types.Message, state: FSMContext):
     """CALLBACK number_of_storeys"""
 
     async with state.proxy() as data:
         type_ = data['property_type']
-        print(123)
         if type_ != 'Земля':
             data['number_of_storeys'] = message.text
         else:
             data['number_of_storeys'] = 0
-        
 
     # start objects phone state
     await objectsForm.next()
-    
+
     await bot.send_message(message.chat.id, config.OBJECT_TEXT['objects']['enter_phone'])
+
 
 @dp.message_handler(state=objectsForm.phone)
 async def process_objects_phone(message: types.Message, state: FSMContext):
@@ -349,6 +378,15 @@ async def process_objects_phone(message: types.Message, state: FSMContext):
 
     async with state.proxy() as data:
         data['phone'] = message.text
+        
+        if STATES[message.chat.id] == 3:
+            data['stage'] = 0
+        elif STATES[message.chat.id] == 4:
+            data['stage'] = 0
+            data['rooms'] = 0
+            data['number_of_storeys'] = 0
+        elif STATES[message.chat.id] == 4:
+            data['rooms'] = 0
 
         with app.app_context():
             # save Objects data in db
@@ -370,25 +408,28 @@ async def process_objects_phone(message: types.Message, state: FSMContext):
 
             db.session.add(object)
             db.session.commit()
-            
+
             user = Users.query.filter_by(id=message.chat.id).first()
             user_name = user.fullname
             user_login = user.login
-        
+            
+
         object_info = md.text(
-                md.text('Регион: ', md.bold(data['region'])),
-                md.text('Город: ', md.bold(data['city'])),
-                md.text('Район: ', md.bold(data['area'])),
-                md.text('Адрес: ', md.bold(data['address'])),
-                # md.text('Улица: ', md.bold(data['street'])),
-                md.text('Кол-во комнат: ', md.bold(data['rooms'])),
-                md.text('Этаж: ', md.bold(data['stage']) + '/' + md.bold(data['number_of_storeys'])),
-                md.text('Описание: ', md.text(data['description'])),
-                md.text('Цена: ', price_processing(data['price']) + ' ₽'),
-                md.text('Площадь: ', data['quadrature'] + ' м²'),
-                md.text('Тип недвижимости: ', md.bold(data['property_type'])),
-                md.text('Телефон: ', (f"[{data['phone']}](tel:{data['phone']})")),
-                sep='\n',)
+            md.text('Регион: ', md.bold(data['region'])),
+            md.text('Город: ', md.bold(data['city'])),
+            md.text('Район: ', md.bold(data['area'])),
+            md.text('Адрес: ', md.bold(data['address'])),
+            # md.text('Улица: ', md.bold(data['street'])),
+            md.text('Кол-во комнат: ', md.bold(current_print(data['rooms']))),
+            md.text('Этаж: ', md.bold(
+                    current_print(data['stage'])) + '/' + md.bold(current_print(data['number_of_storeys']))),
+            md.text('Описание: ', md.text(data['description'])),
+            md.text('Цена: ', price_processing(data['price']) + ' ₽'),
+            md.text('Площадь: ', data['quadrature'] + ' м²'),
+            md.text('Тип недвижимости: ', md.bold(data['property_type'])),
+            md.text('Телефон: ',
+                    (f"[{data['phone']}](tel:{data['phone']})")),
+            sep='\n',)
 
         await bot.send_message(message.chat.id, md.text(config.OBJECT_TEXT['objects']['finish_add']))
         # send object data
@@ -402,8 +443,11 @@ async def process_objects_phone(message: types.Message, state: FSMContext):
     # finish state
     await state.finish()
     
+    STATES.pop(message.chat.id)
+
     await notification_maling(message.chat.id, object_info, object, user_login, user_name)
-    
+
+
 def maling_filter(notification, obj):
     # user notification filter settings
     filter = notification['filter']
@@ -412,11 +456,11 @@ def maling_filter(notification, obj):
     user_price = filter['price']
     user_rooms = filter['rooms']
     user_region = filter['region']
-    
+
     status = False
-    
+
     if user_region == obj.region and user_city == "Не выбрано" and user_rooms == "Не выбрано" and user_area == "Не выбрано":
-        status =  True
+        status = True
     elif user_region == obj.region and user_city == obj.city and user_rooms == "Не выбрано" and user_area == "Не выбрано":
         status = True
     elif user_region == obj.region and user_city == obj.city and user_rooms == "Не выбрано" and user_area == "Не выбрано":
@@ -427,7 +471,7 @@ def maling_filter(notification, obj):
         status = True
     else:
         status = False
-    
+
     if status is True:
         if user_price != "Не выбрано":
             if int(user_price['max']) >= int(obj.price) >= int(user_price['min']):
@@ -436,42 +480,43 @@ def maling_filter(notification, obj):
                 status = False
 
     return status
-    
-    
+
+
 async def notification_maling(id, object_info, object, user_login, user_name):
     """MALING NOTIFICATION"""
-    
+
     username = user_name.split(" ")
     if len(username) > 2:
         username = username[1]
     else:
         user = username[0]
 
-
     contact_keybord = types.InlineKeyboardMarkup(
-    resize_keyboard=True, selective=True)
+        resize_keyboard=True, selective=True)
     if user_login != None:
-        login_btn = types.InlineKeyboardButton(f'Написать ({username})', url=f'https://t.me/{user_login}')
+        login_btn = types.InlineKeyboardButton(
+            f'Написать ({username})', url=f'https://t.me/{user_login}')
         contact_keybord.add(login_btn)
 
-    
-    
     with app.app_context():
         users = Users.query.all()
-    
+
     for user in users:
         notification_user = user.notification
-        
+
         # send info about new object
         if int(user.id) != int(id):
             if notification_user['status'] == True:
                 if notification_user['filter'] != None:
                     if maling_filter(notification_user, object) == True:
-                        await buy_bot.send_message(user.id, f"{config.OBJECT_TEXT['notification']['new_object']}\n\n{object_info}", parse_mode=ParseMode.MARKDOWN)
+                        await buy_bot.send_message(user.id, f"{config.OBJECT_TEXT['notification']['new_object']}\n\n{object_info}",
+                                                   parse_mode=ParseMode.MARKDOWN,
+                                                   reply_markup=contact_keybord)
                 else:
-                    await buy_bot.send_message(user.id, f"{config.OBJECT_TEXT['notification']['new_object']}\n\n{object_info}", parse_mode=ParseMode.MARKDOWN)
-                    
-                    
+                    await buy_bot.send_message(user.id, f"{config.OBJECT_TEXT['notification']['new_object']}\n\n{object_info}", 
+                                               parse_mode=ParseMode.MARKDOWN,
+                                               reply_markup=contact_keybord)
+
 
 if __name__ == '__main__':
     executor.start_polling(dp, skip_updates=True)

@@ -371,20 +371,9 @@ async def callback_filter(call: types.CallbackQuery):
             with app.app_context():
                 user = Users.query.filter_by(id=call.message.chat.id).first()
                 object = Objects.query.filter_by(region=user.region).all()
-
-                username = user.fullname.split(" ")
-                if len(username) > 2:
-                    username = username[1]
-
-                else:
-                    username = username[0]
-
-                if user.login != None:
-                    login_btn = types.InlineKeyboardButton(f'Написать ({username})', url=f'https://t.me/{user.login}')
-                    contact_keybord.add(login_btn)
                 
                 for i in render_all_objects(object):
-                    await bot.send_message(call.message.chat.id, i[0], parse_mode=ParseMode.MARKDOWN, reply_markup=contact_keybord)
+                    await bot.send_message(call.message.chat.id, i[0], parse_mode=ParseMode.MARKDOWN, reply_markup=i[2])
 
     # filter items
     elif func_action == 'item':

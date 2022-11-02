@@ -25,6 +25,12 @@ UPDATE = {}
 SWITCH = {}
 NOTIFICATION = {}
 
+def current_print(text):
+    if text == 0:
+        return 'Нет'
+    else:
+        return text
+
 def get_keys():
     # with app.app_context():
     #     return [i.key for i in AccessKeys.query.all()]
@@ -454,8 +460,8 @@ def render_all_objects(my_objects):
             md.text('Район: ', md.bold(object.area)),
             md.text('Адрес: ', md.bold(object.address)),
             # md.text('Улица: ', md.bold(object.street)),
-            md.text('Кол-во комнат: ', md.bold(object.rooms)),
-            md.text('Этаж: ', md.bold(object.stage) + '/' + md.bold(object.number_of_storeys)),
+            md.text('Кол-во комнат: ', md.bold(current_print(object.rooms))),
+            md.text('Этаж: ', md.bold(current_print(object.stage)) + '/' + md.bold(current_print(object.number_of_storeys))),
             md.text('Описание: ', md.text(object.description)),
             md.text('Цена: ', price_processing(str(object.price)) + ' ₽'),
             md.text('Площадь: ', str(object.quadrature) + ' м²'),
