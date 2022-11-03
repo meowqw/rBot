@@ -385,7 +385,7 @@ async def process_objects_phone(message: types.Message, state: FSMContext):
             data['stage'] = 0
             data['rooms'] = 0
             data['number_of_storeys'] = 0
-        elif STATES[message.chat.id] == 4:
+        elif STATES[message.chat.id] == 5:
             data['rooms'] = 0
 
         with app.app_context():
