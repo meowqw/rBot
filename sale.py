@@ -239,7 +239,7 @@ async def callbacks_property_type(call: types.CallbackQuery, state: FSMContext):
         
     elif STATES[call.message.chat.id] in [5]:
         await objectsForm.rooms.set()
-        await bot.send_message(call.message.chat.id, config.OBJECT_TEXT['objects']['enter_description'])
+        await bot.send_message(call.message.chat.id, config.OBJECT_TEXT['objects']['enter_stage'])
         await objectsForm.next()
 
     
