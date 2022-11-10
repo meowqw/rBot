@@ -110,53 +110,112 @@ def get_result_objects(id):
     filter_area = FILTER[id]['area']
     filter_price = FILTER[id]['price']
     filter_rooms = FILTER[id]['rooms']
+    filter_advertising = FILTER[id]['advertising']
+    print(filter_advertising)
 
     res_objects = []
 
-    # true true true
-    if filter_area != 'Не выбрано' and filter_rooms != 'Не выбрано' and filter_city != 'Не выбрано':
+    # true true true true
+    if filter_area != 'Не выбрано' and filter_rooms != 'Не выбрано' and filter_city != 'Не выбрано' and filter_advertising != 'Не выбрано':
         with app.app_context():
             objects = Objects.query.filter_by(
-                region=filter_region, area=filter_area, rooms=filter_rooms, city=filter_city).all()
+                region=filter_region, area=filter_area, rooms=filter_rooms, city=filter_city, advertising=filter_advertising).all()
+    # ----
 
-    # true false false
-    elif filter_area != 'Не выбрано' and filter_rooms == 'Не выбрано' and filter_city == 'Не выбрано':
+    # true false false false
+    elif filter_area != 'Не выбрано' and filter_rooms == 'Не выбрано' and filter_city == 'Не выбрано' and filter_advertising == 'Не выбрано':
         with app.app_context():
             objects = Objects.query.filter_by(
                 region=filter_region, area=filter_area).all()
 
-    # false true false
-    elif filter_area == 'Не выбрано' and filter_rooms != 'Не выбрано' and filter_city == 'Не выбрано':
+    # false true false false
+    elif filter_area == 'Не выбрано' and filter_rooms != 'Не выбрано' and filter_city == 'Не выбрано' and filter_advertising == 'Не выбрано':
         with app.app_context():
             objects = Objects.query.filter_by(
                 region=filter_region, rooms=filter_rooms).all()
 
-    # false false true
-    elif filter_area == 'Не выбрано' and filter_rooms == 'Не выбрано' and filter_city != 'Не выбрано':
+    # false false true false
+    elif filter_area == 'Не выбрано' and filter_rooms == 'Не выбрано' and filter_city != 'Не выбрано' and filter_advertising == 'Не выбрано':
         with app.app_context():
             objects = Objects.query.filter_by(
                 region=filter_region, city=filter_city).all()
+    
+    # false false false true
+    elif filter_area == 'Не выбрано' and filter_rooms == 'Не выбрано' and filter_city == 'Не выбрано' and filter_advertising != 'Не выбрано':
+        with app.app_context():
+            objects = Objects.query.filter_by(
+                region=filter_region, advertising=filter_advertising).all()
 
-    # true true false
-    elif filter_area != 'Не выбрано' and filter_rooms != 'Не выбрано' and filter_city == 'Не выбрано':
+    # ----
+    
+    # true true false false
+    elif filter_area != 'Не выбрано' and filter_rooms != 'Не выбрано' and filter_city == 'Не выбрано' and filter_advertising == 'Не выбрано':
         with app.app_context():
             objects = Objects.query.filter_by(
                 region=filter_region, area=filter_area, rooms=filter_rooms).all()
 
-    # true false true
-    elif filter_area != 'Не выбрано' and filter_rooms == 'Не выбрано' and filter_city != 'Не выбрано':
+    # false false true true
+    elif filter_area == 'Не выбрано' and filter_rooms == 'Не выбрано' and filter_city != 'Не выбрано' and filter_advertising != 'Не выбрано':
+        with app.app_context():
+            objects = Objects.query.filter_by(
+                region=filter_region, city=filter_city, advertising=filter_advertising).all()
+
+    # true false false true
+    elif filter_area != 'Не выбрано' and filter_rooms == 'Не выбрано' and filter_city == 'Не выбрано' and filter_advertising != 'Не выбрано':
+        print(12)
+        with app.app_context():
+            objects = Objects.query.filter_by(
+                region=filter_region, area=filter_area, advertising='Да').all()
+    
+    # true false true false
+    elif filter_area != 'Не выбрано' and filter_rooms == 'Не выбрано' and filter_city != 'Не выбрано' and filter_advertising == 'Не выбрано':
         with app.app_context():
             objects = Objects.query.filter_by(
                 region=filter_region, area=filter_area, city=filter_city).all()
-
-    # false true true
-    elif filter_area == 'Не выбрано' and filter_rooms != 'Не выбрано' and filter_city != 'Не выбрано':
+    
+    # false true false true
+    elif filter_area == 'Не выбрано' and filter_rooms != 'Не выбрано' and filter_city == 'Не выбрано' and filter_advertising != 'Не выбрано':
+        with app.app_context():
+            objects = Objects.query.filter_by(
+                region=filter_region, rooms=filter_rooms, advertising=filter_advertising).all()
+        
+    
+    # false true true false
+    elif filter_area == 'Не выбрано' and filter_rooms != 'Не выбрано' and filter_city != 'Не выбрано' and filter_advertising == 'Не выбрано':
         with app.app_context():
             objects = Objects.query.filter_by(
                 region=filter_region, rooms=filter_rooms, city=filter_city).all()
+            
+     # ----
+    
+    # true true true false
+    elif filter_area != 'Не выбрано' and filter_rooms != 'Не выбрано' and filter_city != 'Не выбрано' and filter_advertising == 'Не выбрано':
+        with app.app_context():
+            objects = Objects.query.filter_by(
+                region=filter_region, area=filter_area, rooms=filter_rooms, city=filter_city).all()
 
-    # false false false
-    elif filter_area == 'Не выбрано' and filter_rooms == 'Не выбрано' and filter_city == 'Не выбрано':
+    # false true true true
+    elif filter_area == 'Не выбрано' and filter_rooms != 'Не выбрано' and filter_city != 'Не выбрано' and filter_advertising != 'Не выбрано':
+        with app.app_context():
+            objects = Objects.query.filter_by(
+                region=filter_region, rooms=filter_rooms, city=filter_city, advertising=filter_advertising).all()
+
+    # true false true true
+    elif filter_area == 'Не выбрано' and filter_rooms == 'Не выбрано' and filter_city != 'Не выбрано' and filter_advertising == 'Не выбрано':
+        with app.app_context():
+            objects = Objects.query.filter_by(
+                region=filter_region, area=filter_area, city=filter_city, advertising=filter_advertising).all()
+    
+    #  true true false true
+    elif filter_area != 'Не выбрано' and filter_rooms != 'Не выбрано' and filter_city == 'Не выбрано' and filter_advertising != 'Не выбрано':
+        with app.app_context():
+            objects = Objects.query.filter_by(
+                region=filter_region, area=filter_area, rooms=filter_rooms, advertising=filter_advertising).all()
+
+    # ----
+    
+    # false false false false
+    elif filter_area == 'Не выбрано' and filter_rooms == 'Не выбрано' and filter_city == 'Не выбрано' and filter_advertising == 'Не выбрано':
         with app.app_context():
             objects = Objects.query.filter_by(region=filter_region).all()
 
@@ -166,6 +225,8 @@ def get_result_objects(id):
                 res_objects.append(i)
     else:
         res_objects = objects
+        
+    print(res_objects)
 
     return res_objects
 
@@ -184,6 +245,7 @@ async def render_item(id, item):
     # get all objects
     with app.app_context():
         objects = Objects.query.all()
+        
     all_city = set([i.city for i in objects if i.city != None])
     all_areas_filter_by_city = set(
         [i.area for i in objects if i.city == FILTER[id]['city']])
@@ -207,6 +269,7 @@ async def render_item(id, item):
     # all cities
     if item == 'city':
         for i in all_city:
+            print(i)
             buttons.append(types.InlineKeyboardButton(
                 f'{i}', callback_data=f'filter_city_{i}'))
 
@@ -224,6 +287,16 @@ async def render_item(id, item):
         keyboard_items.add(*buttons)
 
         msg = await bot.send_message(id, config.OBJECT_TEXT['feed']['area_btn'], reply_markup=keyboard_items)
+        
+    # all advertising by current city
+    elif item == 'advertising':
+
+        buttons = [types.InlineKeyboardButton(f'Да', callback_data=f'filter_advertising_Да'), 
+                           types.InlineKeyboardButton(f'Нет', callback_data=f'filter_advertising_Нет')]
+
+        keyboard_items.add(*buttons)
+
+        msg = await bot.send_message(id, config.OBJECT_TEXT['feed']['advertising_btn'], reply_markup=keyboard_items)
 
     elif item == 'rooms':
 
@@ -407,6 +480,14 @@ async def callback_filter(call: types.CallbackQuery):
             else:
                 await set_item_filter_notification(call.message.chat.id, 'rooms')
                 
+        elif action == 'advertising':
+            
+            # FEED MODE
+            if SWITCH[call.message.chat.id]['current'] == 'objects':
+                await render_item(call.message.chat.id, 'advertising')
+            else:
+                await set_item_filter_notification(call.message.chat.id, 'advertising')
+                
         elif action == 'price':
             await render_item(call.message.chat.id, 'price')
             
@@ -423,14 +504,15 @@ async def callback_filter(call: types.CallbackQuery):
                     FILTER[call.message.chat.id]['objects'].append(msg)
             else:
                 objects_btn = await bot.send_message(call.message.chat.id, config.OBJECT_TEXT['feed']['no_objects'])
-                FILTER[call.message.chat.id]['objects_btn'] = objects_btn 
+                FILTER[call.message.chat.id]['objects_btn'] = objects_btn
                 
         # clear filter
         elif action == 'clear':
-            FILTER[call.message.chat.id]['region'] = 'Не выбрано' 
-            FILTER[call.message.chat.id]['area'] = 'Не выбрано' 
+            FILTER[call.message.chat.id]['region'] = 'Не выбрано'
+            FILTER[call.message.chat.id]['area'] = 'Не выбрано'
             FILTER[call.message.chat.id]['rooms'] = 'Не выбрано' 
-            FILTER[call.message.chat.id]['price'] = 'Не выбрано' 
+            FILTER[call.message.chat.id]['price'] = 'Не выбрано'
+            FILTER[call.message.chat.id]['advertising'] = 'Не выбрано'
             FILTER[call.message.chat.id]['city'] = 'Не выбрано' 
             
             try:
@@ -520,11 +602,13 @@ async def callback_filter(call: types.CallbackQuery):
             FILTER[call.message.chat.id]['area'] = 'Не выбрано' 
             FILTER[call.message.chat.id]['rooms'] = 'Не выбрано' 
             FILTER[call.message.chat.id]['price'] = 'Не выбрано'
+            FILTER[call.message.chat.id]['advertising'] = 'Не выбрано'
         elif func_action == 'region':
             FILTER[call.message.chat.id]['area'] = 'Не выбрано' 
             FILTER[call.message.chat.id]['rooms'] = 'Не выбрано' 
             FILTER[call.message.chat.id]['price'] = 'Не выбрано'
             FILTER[call.message.chat.id]['city'] = 'Не выбрано'
+            FILTER[call.message.chat.id]['advertising'] = 'Не выбрано'
             
             
         FILTER[call.message.chat.id][func_action] = action
@@ -661,6 +745,11 @@ def render_filter_button(id):
                 current_price = 'Не выбрано'
         else:
             current_price = 'Не выбрано'
+            
+        if 'advertising' in FILTER[id]:
+            current_advertising = FILTER[id]['advertising']
+        else:
+            current_advertising = 'Не выбрано'
 
         if 'count' in FILTER[id]:
             current_count = len(get_result_objects(id))
@@ -674,17 +763,19 @@ def render_filter_button(id):
 
         with app.app_context():
             user = Users.query.filter_by(id=id).first()
+            
         current_region = user.region
         current_city = 'Не выбрано'
         current_area = 'Не выбрано'
         current_rooms = 'Не выбрано'
         current_price = 'Не выбрано'
+        current_advertising = 'Не выбрано'
         with app.app_context():
             current_count = len(Objects.query.filter_by(city=current_city).all())
 
         FILTER[id] = {'city': current_city, 'area': current_area,
                       'rooms': current_rooms, 'price': current_price,
-                      'count': current_count, 'region': current_region}
+                      'count': current_count, 'region': current_region, 'advertising': current_advertising}
 
     buttons = [
         types.InlineKeyboardButton(
@@ -696,7 +787,9 @@ def render_filter_button(id):
         types.InlineKeyboardButton(
             f"{config.OBJECT_TEXT['feed']['rooms_btn']}: {current_rooms}", callback_data='filter_item_rooms'),
         types.InlineKeyboardButton(
-            f"{config.OBJECT_TEXT['feed']['price']}: {current_price}", callback_data='filter_item_price')
+            f"{config.OBJECT_TEXT['feed']['price']}: {current_price}", callback_data='filter_item_price'),
+        types.InlineKeyboardButton(
+            f"{config.OBJECT_TEXT['feed']['advertising_btn']}: {current_advertising}", callback_data='filter_item_advertising')
     ]
     
     filter_items_keyboard.add(*buttons)

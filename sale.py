@@ -338,7 +338,6 @@ async def process_objects_quadrature(message: types.Message, state: FSMContext):
         data['quadrature'] = message.text
 
     
-
     if STATES[message.chat.id] not in [4]:
         await bot.send_message(message.chat.id, config.OBJECT_TEXT['objects']['enter_number_of_storeys'])
         # start objects property type state
@@ -355,6 +354,15 @@ async def process_number_of_storeys_invalid(message: types.Message):
     return await message.reply(config.OBJECT_TEXT['objects']['exc_price'])
 
 
+advertising_keyboard = types.InlineKeyboardMarkup(
+    resize_keyboard=True, selective=True)
+advertising_btn_1 = types.InlineKeyboardButton(
+    'Да', callback_data='advertising_btn_1')
+advertising_btn_2 = types.InlineKeyboardButton(
+    'Нет', callback_data='advertising_btn_2')
+
+advertising_keyboard.add(advertising_btn_1, advertising_btn_2)
+
 @dp.message_handler(lambda message: message.text.isdigit() and STATES[message.chat.id] not in [4], state=objectsForm.number_of_storeys)
 async def process_number_of_storeys(message: types.Message, state: FSMContext):
     """CALLBACK number_of_storeys"""
@@ -366,10 +374,30 @@ async def process_number_of_storeys(message: types.Message, state: FSMContext):
         else:
             data['number_of_storeys'] = 0
 
+    # start objects advertising state
+    await objectsForm.next()
+
+    await bot.send_message(message.chat.id, config.OBJECT_TEXT['objects']['enter_advertising'], reply_markup=advertising_keyboard)
+    
+
+@dp.callback_query_handler(Text(startswith="advertising_btn_"), state=objectsForm.advertising)
+async def callbacks_advertising(call: types.CallbackQuery, state: FSMContext):
+    """CALLBACK advertising"""
+    action = call.data.split('_')[-1]
+
+    if action == "1":
+        advertising = 'Да'
+    elif action == "2":
+        advertising = 'Нет'
+        
+    async with state.proxy() as data:
+        data['advertising'] = advertising
+    
     # start objects phone state
     await objectsForm.next()
 
-    await bot.send_message(message.chat.id, config.OBJECT_TEXT['objects']['enter_phone'])
+    await bot.send_message(call.message.chat.id, config.OBJECT_TEXT['objects']['enter_phone'])
+    
 
 
 @dp.message_handler(state=objectsForm.phone)
@@ -404,6 +432,7 @@ async def process_objects_phone(message: types.Message, state: FSMContext):
                 quadrature=data['quadrature'],
                 property_type=data['property_type'],
                 number_of_storeys=data['number_of_storeys'],
+                advertising=data['advertising'],
                 phone=data['phone'])
 
             db.session.add(object)
@@ -412,7 +441,7 @@ async def process_objects_phone(message: types.Message, state: FSMContext):
             user = Users.query.filter_by(id=message.chat.id).first()
             user_name = user.fullname
             user_login = user.login
-            
+                
 
         object_info = md.text(
             md.text('Регион: ', md.bold(data['region'])),
@@ -427,6 +456,7 @@ async def process_objects_phone(message: types.Message, state: FSMContext):
             md.text('Цена: ', price_processing(data['price']) + ' ₽'),
             md.text('Площадь: ', data['quadrature'] + ' м²'),
             md.text('Тип недвижимости: ', md.bold(data['property_type'])),
+            md.text('В рекламе:', md.bold(data['advertising'])),
             md.text('Телефон: ',
                     (f"[{data['phone']}](tel:{data['phone']})")),
             sep='\n',)
@@ -456,18 +486,21 @@ def maling_filter(notification, obj):
     user_price = filter['price']
     user_rooms = filter['rooms']
     user_region = filter['region']
+    user_advertising = filter['advertising']
 
     status = False
 
-    if user_region == obj.region and user_city == "Не выбрано" and user_rooms == "Не выбрано" and user_area == "Не выбрано":
+    if user_region == obj.region and user_city == "Не выбрано" and user_rooms == "Не выбрано" and user_area == "Не выбрано" and user_advertising == "Не выбрано":
         status = True
-    elif user_region == obj.region and user_city == obj.city and user_rooms == "Не выбрано" and user_area == "Не выбрано":
+    elif user_region == obj.region and user_city == obj.city and user_rooms == "Не выбрано" and user_area == "Не выбрано" and user_advertising == "Не выбрано":
         status = True
-    elif user_region == obj.region and user_city == obj.city and user_rooms == "Не выбрано" and user_area == "Не выбрано":
+    elif user_region == obj.region and user_city == obj.city and user_rooms == "Не выбрано" and user_area == "Не выбрано" and user_advertising == "Не выбрано":
         status = True
-    elif user_region == obj.region and user_city == obj.city and user_rooms == obj.rooms and user_area == "Не выбрано":
+    elif user_region == obj.region and user_city == obj.city and user_rooms == obj.rooms and user_area == "Не выбрано" and user_advertising == "Не выбрано":
         status = True
-    elif user_region == obj.region and user_city == obj.city and user_rooms == obj.rooms and user_area == obj.area:
+    elif user_region == obj.region and user_city == obj.city and user_rooms == obj.rooms and user_area == obj.area and user_advertising == "Не выбрано":
+        status = True
+    elif user_region == obj.region and user_city == obj.city and user_rooms == obj.rooms and user_area == obj.area and user_advertising == obj.advertising:
         status = True
     else:
         status = False

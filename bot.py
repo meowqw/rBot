@@ -71,7 +71,9 @@ class objectsForm(StatesGroup):
     price = State()
     quadrature = State()
     number_of_storeys = State()
+    advertising = State()
     phone = State()
+    
 
 
 # user data
@@ -466,6 +468,7 @@ def render_all_objects(my_objects):
             md.text('Цена: ', price_processing(str(object.price)) + ' ₽'),
             md.text('Площадь: ', str(object.quadrature) + ' м²'),
             md.text('Тип недвижимости: ', md.bold(object.property_type)),
+            md.text('В рекламе: ', md.bold(object.advertising)),
             md.text('Телефон: ', (f"[{object.phone}](tel:{object.phone})")),
             md.text('Дейтвительно до: ', (object.date_end.strftime("%d.%m.%Y, %H:%M:%S"))),
 
@@ -592,6 +595,8 @@ async def callback_update_my_object(call: types.CallbackQuery):
         types.InlineKeyboardButton(
             f'Цена', callback_data=f'update_price_{id}'),
         types.InlineKeyboardButton(
+            f'В рекламе', callback_data=f'update_advertising_{id}'),
+        types.InlineKeyboardButton(
             f'Отмена', callback_data=f'update_cancel_{id}'),
     ])
 
@@ -606,6 +611,9 @@ async def callbacks_update(call: types.CallbackQuery):
     id = call.data.split('_')[-1]
     action = call.data.split('update_')[1].replace('my_', '').replace(f'_{id}', '')
     type_ = call.data.split('_')[1]
+    
+    if action == 'advertising':
+         await bot.send_message(call.message.chat.id, "Для данного поля, вы должны ввести: 'Да' или 'Нет'" )
     
     print(id, action)
     UPDATE[call.message.chat.id]['update'] = {'action': action, 'id': id, 'type': type_}
@@ -634,18 +642,25 @@ async def process_update(message: types.Message, state: FSMContext):
         id = UPDATE[message.chat.id]['update']['id']
         type_ = UPDATE[message.chat.id]['update']['type']
         
+        value = message.text
+        # if action == 'advertising':
+        #     if message.text.strip().upper() == 'ДA':
+        #         value = 'Да'
+        #     else:
+        #         value = 'Нет'
+        
         print(action, id, type_)
         # SQL
         with app.app_context():
             
             # update profile
             if type_ == 'my':
-                db.engine.execute(f"UPDATE users SET {action}='{message.text}' WHERE id={message.chat.id};")
+                db.engine.execute(f"UPDATE users SET {action}='{value}' WHERE id={message.chat.id};")
                 db.session.commit()
             
             # update objects
             else:
-                db.engine.execute(f"UPDATE objects SET {action}='{message.text}' WHERE id={id};")
+                db.engine.execute(f"UPDATE objects SET {action}='{value}' WHERE id={id};")
                 db.session.commit()
             
                 print('ok')
@@ -659,7 +674,7 @@ async def process_update(message: types.Message, state: FSMContext):
         # reload object info
         with app.app_context():
             object = Objects.query.filter_by(id=UPDATE[message.chat.id]['update']['id']).all()
-        text, object_control_keyboard  = render_all_objects(object)[0]
+        text, object_control_keyboard, contact = render_all_objects(object)[0]
         
         message_object_id = await bot.send_message(
                 message.chat.id,

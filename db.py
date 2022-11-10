@@ -46,6 +46,7 @@ class Objects(db.Model):
     property_type = db.Column(db.String(400), nullable=True)
     number_of_storeys = db.Column(db.Integer(), nullable=True)
     phone = db.Column(db.String(200), nullable=True)
+    advertising = db.Column(db.String(200), nullable=True)
     date_end = db.Column(db.DateTime, nullable=False, default=datetime.now() + timedelta(days=30))
     datetime = db.Column(db.DateTime, nullable=False, default=datetime.now())
 
@@ -71,6 +72,7 @@ class Chats(db.Model):
 with app.app_context():
     app.config['SESSION_TYPE'] = 'filesystem'
     app.config['JSON_AS_ASCII'] = False
+    
     db.create_all()
     
     # Session(app)
