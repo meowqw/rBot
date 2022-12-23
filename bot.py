@@ -33,8 +33,8 @@ def current_print(text):
 
 def get_keys():
     with app.app_context():
-        # return [i.key for i in AccessKeys.query.all()]
-        return ['key']
+        return [i.key for i in AccessKeys.query.all()]
+        # return ['key']
 
 logging.basicConfig(level=logging.INFO)
 
