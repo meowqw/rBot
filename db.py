@@ -69,6 +69,12 @@ class Chats(db.Model):
     link = db.Column(db.String(200), nullable=True)
     datetime = db.Column(db.DateTime, nullable=False, default=datetime.now())
 
+class Images(db.Model):
+    id = db.Column(db.Integer(), primary_key=True)
+    object = db.Column(db.Integer(), db.ForeignKey('objects.id'), nullable=True)
+    image_path = db.Column(db.String(255), nullable=True)
+    datetime = db.Column(db.DateTime, nullable=False, default=datetime.now())
+
 with app.app_context():
     app.config['SESSION_TYPE'] = 'filesystem'
     app.config['JSON_AS_ASCII'] = False

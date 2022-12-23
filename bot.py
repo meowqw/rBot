@@ -9,7 +9,7 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.dispatcher import FSMContext
 import config
-from db import db, Users, Objects, AccessKeys, app, Chats
+from db import db, Users, Objects, AccessKeys, app, Chats, Images
 from aiogram.types import ParseMode
 from aiogram.utils.markdown import link
 import logging
@@ -33,7 +33,8 @@ def current_print(text):
 
 def get_keys():
     with app.app_context():
-        return [i.key for i in AccessKeys.query.all()]
+        # return [i.key for i in AccessKeys.query.all()]
+        return ['key']
 
 logging.basicConfig(level=logging.INFO)
 
@@ -442,7 +443,10 @@ def render_all_objects(my_objects):
             resize_keyboard=True, selective=True)
             if user.login != None:
                 login_btn = types.InlineKeyboardButton(f'Написать ({username})', url=f'https://t.me/{user.login}')
+                images = types.InlineKeyboardButton('Изображения 🖼', callback_data=f"img_{object.id}")
+
                 contact_keybord.add(login_btn)
+                contact_keybord.add(images)
 
 
         
@@ -479,6 +483,22 @@ def render_all_objects(my_objects):
     
     return objects
         
+@dp.callback_query_handler(Text(startswith="img_"))
+async def callback_extend_img(call: types.CallbackQuery):
+    """CALLBACK EXTEND img"""
+    print(call.data)
+    id = call.data.split('_')[-1]
+    print(id)
+    media = types.MediaGroup()
+    with app.app_context():
+        images = Images.query.filter_by(object=id).all()
+        if len(images) != 0:
+            for i in images:
+                print(i.image_path)
+                media.attach_photo(types.InputFile(i.image_path))
+
+    await bot.send_media_group(call.message.chat.id, media=media)
+
 
 @dp.message_handler(Text(equals=config.OBJECT_TEXT['main']['my_objects_btn']))
 async def function_my_objects(message: types.Message):

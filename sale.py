@@ -9,7 +9,7 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.dispatcher import FSMContext
 import config
-from db import db, Users, Objects, AccessKeys, app
+from db import db, Users, Objects, AccessKeys, app, Images
 from aiogram.types import ParseMode
 from aiogram.utils.markdown import link
 import logging
@@ -28,6 +28,11 @@ dp = Dispatcher(bot, storage=storage)
 
 # state property type 
 STATES = {}
+IMAGES = {}
+
+
+class uploadImage(StatesGroup):
+    data = State()
 
 
 @dp.message_handler(Text(equals=config.OBJECT_TEXT['main']['cancel_btn'], ignore_case=True), state='*')
@@ -397,11 +402,19 @@ async def callbacks_advertising(call: types.CallbackQuery, state: FSMContext):
     await objectsForm.next()
 
     await bot.send_message(call.message.chat.id, config.OBJECT_TEXT['objects']['enter_phone'])
+
+img_keyboard = types.InlineKeyboardMarkup(
+    resize_keyboard=True, selective=True)
+img_btn_1 = types.InlineKeyboardButton(
+    'Да', callback_data='img_btn_1')
+img_btn_2 = types.InlineKeyboardButton(
+    'Нет', callback_data='img_btn_2')
+
+img_keyboard.add(img_btn_1, img_btn_2)
+
     
-
-
 @dp.message_handler(state=objectsForm.phone)
-async def process_objects_phone(message: types.Message, state: FSMContext):
+async def process_objects_phone(message, state: FSMContext):
     """OBJECTS PHONE STATE AND SAVE STATE DATA IN DB OBJECTS"""
 
     async with state.proxy() as data:
@@ -416,67 +429,112 @@ async def process_objects_phone(message: types.Message, state: FSMContext):
         elif STATES[message.chat.id] == 5:
             data['rooms'] = 0
 
-        with app.app_context():
-            # save Objects data in db
-            object = Objects(
-                user=str(message.chat.id),
-                region=data['region'],
-                city=data['city'],
-                area=data['area'],
-                address=data['address'],
-                street=data['street'],
-                rooms=data['rooms'],
-                stage=data['stage'],
-                description=data['description'],
-                price=data['price'],
-                quadrature=data['quadrature'],
-                property_type=data['property_type'],
-                number_of_storeys=data['number_of_storeys'],
-                advertising=data['advertising'],
-                phone=data['phone'])
+    with app.app_context():
+        # save Objects data in db
+        object = Objects(
+            user=str(message.chat.id),
+            region=data['region'],
+            city=data['city'],
+            area=data['area'],
+            address=data['address'],
+            street=data['street'],
+            rooms=data['rooms'],
+            stage=data['stage'],
+            description=data['description'],
+            price=data['price'],
+            quadrature=data['quadrature'],
+            property_type=data['property_type'],
+            number_of_storeys=data['number_of_storeys'],
+            advertising=data['advertising'],
+            phone=data['phone'])
 
-            db.session.add(object)
-            db.session.commit()
+        db.session.add(object)
+        db.session.flush()
+        object_id = object.id
+        IMAGES[message.chat.id] = object_id
 
-            user = Users.query.filter_by(id=message.chat.id).first()
-            user_name = user.fullname
-            user_login = user.login
-                
+        db.session.commit()
 
-        object_info = md.text(
-            md.text('Регион: ', md.bold(data['region'])),
-            md.text('Город: ', md.bold(data['city'])),
-            md.text('Район: ', md.bold(data['area'])),
-            md.text('Адрес: ', md.bold(data['address'])),
-            # md.text('Улица: ', md.bold(data['street'])),
-            md.text('Кол-во комнат: ', md.bold(current_print(data['rooms']))),
-            md.text('Этаж: ', md.bold(
-                    current_print(data['stage'])) + '/' + md.bold(current_print(data['number_of_storeys']))),
-            md.text('Описание: ', md.text(data['description'])),
-            md.text('Цена: ', price_processing(data['price']) + ' ₽'),
-            md.text('Площадь: ', data['quadrature'] + ' м²'),
-            md.text('Тип недвижимости: ', md.bold(data['property_type'])),
-            md.text('В рекламе:', md.bold(data['advertising'])),
-            md.text('Телефон: ',
-                    (f"[{data['phone']}](tel:{data['phone']})")),
-            sep='\n',)
+        user = Users.query.filter_by(id=message.chat.id).first()
+        user_name = user.fullname
+        user_login = user.login
 
-        await bot.send_message(message.chat.id, md.text(config.OBJECT_TEXT['objects']['finish_add']))
-        # send object data
-        await bot.send_message(
-            message.chat.id,
-            object_info,
-            reply_markup=main_keyboard,
-            parse_mode=ParseMode.MARKDOWN,
-        )
+    
+    object_info = md.text(
+        md.text('Регион: ', md.bold(data['region'])),
+        md.text('Город: ', md.bold(data['city'])),
+        md.text('Район: ', md.bold(data['area'])),
+        md.text('Адрес: ', md.bold(data['address'])),
+        # md.text('Улица: ', md.bold(data['street'])),
+        md.text('Кол-во комнат: ', md.bold(current_print(data['rooms']))),
+        md.text('Этаж: ', md.bold(
+                current_print(data['stage'])) + '/' + md.bold(current_print(data['number_of_storeys']))),
+        md.text('Описание: ', md.text(data['description'])),
+        md.text('Цена: ', price_processing(data['price']) + ' ₽'),
+        md.text('Площадь: ', data['quadrature'] + ' м²'),
+        md.text('Тип недвижимости: ', md.bold(data['property_type'])),
+        md.text('В рекламе:', md.bold(data['advertising'])),
+        md.text('Телефон: ',
+                (f"[{data['phone']}](tel:{data['phone']})")),
+        sep='\n',)
+
+    await bot.send_message(message.chat.id, md.text(config.OBJECT_TEXT['objects']['finish_add']))
+    # send object data
+    await bot.send_message(
+        message.chat.id,
+        object_info,
+        reply_markup=main_keyboard,
+        parse_mode=ParseMode.MARKDOWN,
+    )
 
     # finish state
     await state.finish()
-    
+
+    # await bot.send_message(message.chat.id, config.OBJECT_TEXT['objects']['enter_images'])
+
+    # add_photo(object_id)
+
     STATES.pop(message.chat.id)
 
-    await notification_maling(message.chat.id, object_info, object, user_login, user_name)
+    await notification_maling(message.chat.id, object_info, object, user_login, user_name, object_id)
 
+    # img
+    await bot.send_message(message.chat.id, config.OBJECT_TEXT['objects']['enter_images'], reply_markup=img_keyboard)
+
+
+@dp.callback_query_handler(Text(startswith="img_btn_"))
+async def callbacks_images(call: types.CallbackQuery):
+    """CALLBACK images"""
+    action = call.data.split('_')[-1]
+
+    if action == "1":
+        print(IMAGES[call.message.chat.id])
+        await bot.send_message(call.message.chat.id, config.OBJECT_TEXT['objects']['upload_images'])
+        await uploadImage.data.set()
+        
+    elif action == "2":
+        # print(IMAGES[call.message.chat.id])
+        await bot.send_message(call.message.chat.id, config.OBJECT_TEXT['objects']['images_no'])
+
+
+
+@dp.message_handler(state=uploadImage.data, content_types=['photo'])
+async def process_objects_images(message, state: FSMContext):
+    
+    # data['images'] = message.text
+    img_id = message.photo[-1].file_unique_id
+    img_path = f"{config.IMAGE_DIR}/{img_id}.jpg"
+    await message.photo[-1].download(img_path)
+
+    with app.app_context():
+    # save img data in db
+        img = Images(object=IMAGES[message.chat.id], image_path=img_path)
+        db.session.add(img)
+        db.session.commit()
+
+    await state.finish()
+
+    await bot.send_message(message.chat.id, config.OBJECT_TEXT['objects']['images_ok'])
 
 def maling_filter(notification, obj):
     # user notification filter settings
@@ -515,7 +573,8 @@ def maling_filter(notification, obj):
     return status
 
 
-async def notification_maling(id, object_info, object, user_login, user_name):
+
+async def notification_maling(id, object_info, object, user_login, user_name, object_id):
     """MALING NOTIFICATION"""
 
     username = user_name.split(" ")
@@ -529,7 +588,10 @@ async def notification_maling(id, object_info, object, user_login, user_name):
     if user_login != None:
         login_btn = types.InlineKeyboardButton(
             f'Написать ({username})', url=f'https://t.me/{user_login}')
+
+        images = types.InlineKeyboardButton('Изображения 🖼', callback_data=f"img_{object_id}")
         contact_keybord.add(login_btn)
+        contact_keybord.add(images)
 
     with app.app_context():
         users = Users.query.all()

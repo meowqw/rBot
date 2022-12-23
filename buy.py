@@ -9,7 +9,7 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.dispatcher import FSMContext
 import config
-from db import db, Users, Objects, AccessKeys, app
+from db import db, Users, Objects, AccessKeys, app, Images
 from aiogram.types import ParseMode
 from aiogram.utils.markdown import link
 import logging
@@ -229,6 +229,39 @@ def get_result_objects(id):
     print(res_objects)
 
     return res_objects
+
+
+
+
+@dp.callback_query_handler(Text(startswith="img_"))
+async def callback_extend_img(call: types.CallbackQuery):
+    """CALLBACK EXTEND img"""
+    print(call.data)
+    id = call.data.split('_')[-1]
+    print(id)
+    
+    with app.app_context():
+        images = Images.query.filter_by(object=id).all()
+
+        if len(images) != 0:
+            if len(images) > 1:
+                media = types.MediaGroup()
+
+                for i in images:
+                    print(i.image_path)
+                    media.attach_photo(types.InputFile(i.image_path))
+
+                await bot.send_media_group(call.message.chat.id, media=media)
+
+            else:
+                photo = types.InputFile(images[0].image_path)
+                await bot.send_photo(call.message.chat.id, photo)
+        else:
+            await bot.send_message(call.message.chat.id, config.OBJECT_TEXT['objects']['images_not'])
+
+    
+
+
 
 
 async def render_item(id, item):
