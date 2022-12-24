@@ -604,13 +604,20 @@ async def notification_maling(id, object_info, object, user_login, user_name, ob
             if notification_user['status'] == True:
                 if notification_user['filter'] != None:
                     if maling_filter(notification_user, object) == True:
-                        await buy_bot.send_message(user.id, f"{config.OBJECT_TEXT['notification']['new_object']}\n\n{object_info}",
-                                                   parse_mode=ParseMode.MARKDOWN,
-                                                   reply_markup=contact_keybord)
+
+                        try:
+                            await buy_bot.send_message(user.id, f"{config.OBJECT_TEXT['notification']['new_object']}\n\n{object_info}",
+                                                    parse_mode=ParseMode.MARKDOWN,
+                                                    reply_markup=contact_keybord)
+                        except Exception as e:
+                            print(e)
                 else:
-                    await buy_bot.send_message(user.id, f"{config.OBJECT_TEXT['notification']['new_object']}\n\n{object_info}", 
-                                               parse_mode=ParseMode.MARKDOWN,
-                                               reply_markup=contact_keybord)
+                    try:
+                        await buy_bot.send_message(user.id, f"{config.OBJECT_TEXT['notification']['new_object']}\n\n{object_info}", 
+                                                parse_mode=ParseMode.MARKDOWN,
+                                                reply_markup=contact_keybord)
+                    except Exception as e:
+                            print(e)
 
 
 if __name__ == '__main__':
