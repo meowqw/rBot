@@ -7,6 +7,7 @@ TOKEN_SALE = '5514677557:AAFo5he1Uh-a08au1inmHfCS-52jFA8FCWA'
 # TOKEN_SALE = '5607756343:AAGx0e84fjqBtEI3DQUAEn34W6SAo97FAz8'
 
 SALE_LINK = 'https://t.me/realtor_sale_bot'
+
 TOKEN_BUY = '5374603835:AAHzYkz6uqkU6ABhfa6vAVHfmxpZkZMDK9M'
 
 # TOKEN_BUY = '5607756343:AAGx0e84fjqBtEI3DQUAEn34W6SAo97FAz8'
@@ -14,7 +15,7 @@ TOKEN_BUY = '5374603835:AAHzYkz6uqkU6ABhfa6vAVHfmxpZkZMDK9M'
 
 BUY_LINK = 'https://t.me/realtor_buy_bot'
 
-IMAGE_DIR = '/home/oleg/python/rBot/media'
+IMAGE_DIR = '/var/www/rBot/media'
 
 DB_HOST = 'localhost'
 DB_PORT = 3306

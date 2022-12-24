@@ -483,6 +483,7 @@ def render_all_objects(my_objects):
     
     return objects
         
+
 @dp.callback_query_handler(Text(startswith="img_"))
 async def callback_extend_img(call: types.CallbackQuery):
     """CALLBACK EXTEND img"""
