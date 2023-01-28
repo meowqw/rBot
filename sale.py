@@ -170,8 +170,7 @@ async def process_objects_address(message: types.Message, state: FSMContext):
 
     async with state.proxy() as data:
 
-        all_address_data = get_data(
-            f"{data['region']}, {data['city']}, {data['area']} {message.text}", 'all_data')
+        all_address_data = get_data(f"{data['region']}, {data['city']}, {data['area']}, {message.text}", 'all_data', user_area=data['area'])
 
         if all_address_data['street'] != None:
             if all_address_data['house'] != None:
