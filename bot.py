@@ -25,16 +25,19 @@ UPDATE = {}
 SWITCH = {}
 NOTIFICATION = {}
 
+
 def current_print(text):
     if text == 0:
         return 'Нет'
     else:
         return text
 
+
 def get_keys():
     with app.app_context():
         return [i.key for i in AccessKeys.query.all()]
         # return ['key']
+
 
 logging.basicConfig(level=logging.INFO)
 
@@ -73,15 +76,16 @@ class objectsForm(StatesGroup):
     number_of_storeys = State()
     advertising = State()
     phone = State()
-    
 
 
 # user data
 class UserData(StatesGroup):
     current_price = State()
-    
+
+
 class Notification(StatesGroup):
     data = State()
+
 
 class updateData(StatesGroup):
     data = State()
@@ -94,6 +98,7 @@ async def process_start_command(message: types.Message):
     """START HANDLING"""
 
     # start fullname state
+    print(message.chat)
     await userForm.fullname.set()
     await bot.send_message(message.chat.id, config.OBJECT_TEXT['user']['start_registration'])
     await bot.send_message(message.chat.id, config.OBJECT_TEXT['user']['enter_fullname'])
@@ -191,7 +196,7 @@ async def process_city(message: types.Message, state: FSMContext):
     """USER CITY STATE"""
 
     links = types.InlineKeyboardMarkup(row_width=2)
-    
+
     msg = await bot.send_message(message.chat.id, config.OBJECT_TEXT['objects']['loading'])
 
     async with state.proxy() as data:
@@ -199,11 +204,12 @@ async def process_city(message: types.Message, state: FSMContext):
         data['city'] = city['city']
         data['region'] = city['region']
 
-         # links buttons
-        links.add(types.InlineKeyboardButton('Бот для продажи', url=config.SALE_LINK))
-        links.add(types.InlineKeyboardButton('Бот для покупки', url=config.BUY_LINK))
-        
-        
+        # links buttons
+        links.add(types.InlineKeyboardButton(
+            'Бот для продажи', url=config.SALE_LINK))
+        links.add(types.InlineKeyboardButton(
+            'Бот для покупки', url=config.BUY_LINK))
+
         with app.app_context():
             # get chat
             try:
@@ -212,14 +218,13 @@ async def process_city(message: types.Message, state: FSMContext):
             except Exception as e:
                 pass
 
-        
         try:
             login = message.chat.username
         except Exception as e:
-            login = '-'
+            login = None
 
         with app.app_context():
-        # save USER data in db
+            # save USER data in db
             user = Users(
                 id=str(message.chat.id),
                 login=login,
@@ -257,7 +262,7 @@ async def process_city(message: types.Message, state: FSMContext):
             parse_mode=ParseMode.MARKDOWN,
             reply_markup=links,
         )
-        
+
         with app.app_context():
             access_key = AccessKeys.query.filter_by(key=data['key']).first()
             access_key.user = str(message.chat.id)
@@ -275,13 +280,14 @@ main_keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
 main_keyboard.row(config.OBJECT_TEXT['main']['my_objects_btn'],
                   config.OBJECT_TEXT['main']['my_settings'])
 
+
 def get_user_(id):
     with app.app_context():
         return Users.query.filter_by(id=id).first()
 
 
 @dp.message_handler(lambda message: get_user_(message.chat.id) != None
-                    and message.text not in [config.OBJECT_TEXT['main'][i] for i in config.OBJECT_TEXT['main']] and 
+                    and message.text not in [config.OBJECT_TEXT['main'][i] for i in config.OBJECT_TEXT['main']] and
                     message.text not in [config.OBJECT_TEXT['notification'][i] for i in config.OBJECT_TEXT['notification']])
 async def process_auth(message: types.Message):
     """USER AUTH"""
@@ -290,9 +296,8 @@ async def process_auth(message: types.Message):
 
 
 @dp.message_handler(lambda message: get_user_(message.chat.id) == None
-                    and message.text not in [config.OBJECT_TEXT['main'][i] for i in config.OBJECT_TEXT['main']] and 
+                    and message.text not in [config.OBJECT_TEXT['main'][i] for i in config.OBJECT_TEXT['main']] and
                     message.text not in [config.OBJECT_TEXT['notification'][i] for i in config.OBJECT_TEXT['notification']])
-                    
 async def process_not_auth(message: types.Message):
     """USER NOT AUTH"""
     markup = types.ReplyKeyboardRemove()
@@ -334,21 +339,36 @@ async def back_handler(message: types.Message,  state: FSMContext):
 
 # edit btn
 update_my = types.InlineKeyboardMarkup(
-        resize_keyboard=True, selective=True)
+    resize_keyboard=True, selective=True)
 
 update_my.add(*[
-        types.InlineKeyboardButton(
-            config.OBJECT_TEXT['main']['my_update'], callback_data=f'my_update')])
+    types.InlineKeyboardButton(
+        config.OBJECT_TEXT['main']['my_update'], callback_data=f'my_update')])
+
+
 @dp.message_handler(Text(equals=config.OBJECT_TEXT['main']['my_settings']))
-
-
 async def function_my_settings(message: types.Message):
     """FUNCTION MY SETTINGS"""
-    
+
     id = message.chat.id
     with app.app_context():
         user = Users.query.filter_by(id=id).first()
-    
+
+        login = user.login
+        print(user.login)
+        print(len(update_my['inline_keyboard']))
+        if login == None:
+            btn = types.InlineKeyboardButton(
+                'Привязать логин', callback_data=f'login_update')
+
+            login = 'Логин не указан.\nУкажите логин в настройках ТГ и нажмите на кнопку\n<Привязать логин>'
+            if len(update_my['inline_keyboard']) < 2:
+                update_my.add(btn)
+        else:
+            # удаляем Кнопку привзяки если логин привзян
+            if len(update_my['inline_keyboard']) > 1:
+                update_my['inline_keyboard'].pop()
+
         # send user data
         await bot.send_message(
             message.chat.id,
@@ -362,18 +382,41 @@ async def function_my_settings(message: types.Message):
                 md.text('Ключ: ', md.bold(user.key)),
                 md.text('Регион: ', md.bold(user.region)),
                 md.text('Город: ', md.bold(user.city)),
+                md.text('Логин: ', login),
                 sep='\n',
             ),
             # reply_markup=update_my,
             parse_mode=ParseMode.MARKDOWN,
             reply_markup=update_my
         )
+
+
+@dp.callback_query_handler(Text(startswith="login_update"))
+async def callback_update_login(call: types.CallbackQuery):
+    """CALLBACK UPDATE MY LOGIN"""
+    
+    # вставка логина по звпросу пользователя
+    try:
+        login = call.message.chat.username
+    except Exception as e:
+        login = None
         
+    if login != None:
+        with app.app_context():
+            db.engine.execute(
+                        f"UPDATE users SET login='{login}' WHERE id={call.message.chat.id};")
+            db.session.commit()
+        
+        await bot.send_message(call.message.chat.id, "Логин добавлен (для проверки повторно нажмите Мой профиль)")
+    else:
+        await bot.send_message(call.message.chat.id, "Вы не указали логин")
+    
+
 @dp.callback_query_handler(Text(startswith="my_update"))
 async def callback_update_my_profile(call: types.CallbackQuery):
     """CALLBACK UPDATE MY PROFILE"""
     id = call.data.split('_')[-1]
-    
+
     # update menu
     update_my_keyboard = types.InlineKeyboardMarkup(
         resize_keyboard=True, selective=True)
@@ -399,7 +442,7 @@ async def callback_update_my_profile(call: types.CallbackQuery):
 
 
 # -------------------- FEED -----------------------
-    
+
 
 def render_all_feed(obj):
     """FEED. RENDER ALL OBJECTS"""
@@ -415,21 +458,22 @@ def render_all_feed(obj):
 
 # -------------------- MY OBJECTS ------------------------
 
+
 def price_processing(price):
-    
+
     price = '{0:,}'.format(int(price)).replace('.', ' ')
     return price
-    
+
 
 def render_all_objects(my_objects):
     """RENDER ALL MY OBJECTS"""
-    
+
     objects = []
     for object in reversed(my_objects):
-        
+
         object_control_keyboard = types.InlineKeyboardMarkup(
-        resize_keyboard=True, selective=True)
-        
+            resize_keyboard=True, selective=True)
+
         with app.app_context():
             user = Users.query.filter_by(id=object.user).first()
             username = user.fullname.split(" ")
@@ -437,27 +481,38 @@ def render_all_objects(my_objects):
                 username = username[1]
             else:
                 username = username[0]
-            
-            
+
             contact_keybord = types.InlineKeyboardMarkup(
-            resize_keyboard=True, selective=True)
+                resize_keyboard=True, selective=True)
+            # для связи используем логин
             if user.login != None:
-                login_btn = types.InlineKeyboardButton(f'Написать ({username})', url=f'https://t.me/{user.login}')
-                images = types.InlineKeyboardButton('Изображения 🖼', callback_data=f"img_{object.id}")
+                login_btn = types.InlineKeyboardButton(
+                    f'Написать ({username})', url=f'https://t.me/{user.login}')
+                images = types.InlineKeyboardButton(
+                    'Изображения 🖼', callback_data=f"img_{object.id}")
+
+                contact_keybord.add(login_btn)
+                contact_keybord.add(images)
+            # для связи используем телефон
+            else:
+                login_btn = types.InlineKeyboardButton(
+                    f'Написать ({username})', url=f'https://t.me/{user.phone}')
+                images = types.InlineKeyboardButton(
+                    'Изображения 🖼', callback_data=f"img_{object.id}")
 
                 contact_keybord.add(login_btn)
                 contact_keybord.add(images)
 
-
-        
         object_control_keyboard.add(*[
             types.InlineKeyboardButton(
                 f'⏱ Продлить', callback_data=f'extend_object_{object.id}'),
             types.InlineKeyboardButton(
                 f'🔄 Изменить', callback_data=f'update_object_{object.id}'),
             types.InlineKeyboardButton(
-                f'🗑 Удалить', callback_data=f'del_object_{object.id}')
-            
+                f'🗑 Удалить', callback_data=f'del_object_{object.id}'),
+             types.InlineKeyboardButton(
+                f'🖼 Посмотреть изображения', callback_data=f"img_{object.id}")
+
         ])
 
         text = md.text(
@@ -467,22 +522,24 @@ def render_all_objects(my_objects):
             md.text('Адрес: ', md.bold(object.address)),
             # md.text('Улица: ', md.bold(object.street)),
             md.text('Кол-во комнат: ', md.bold(current_print(object.rooms))),
-            md.text('Этаж: ', md.bold(current_print(object.stage)) + '/' + md.bold(current_print(object.number_of_storeys))),
+            md.text('Этаж: ', md.bold(current_print(object.stage)) + \
+                    '/' + md.bold(current_print(object.number_of_storeys))),
             md.text('Описание: ', md.text(object.description)),
             md.text('Цена: ', price_processing(str(object.price)) + ' ₽'),
             md.text('Площадь: ', str(object.quadrature) + ' м²'),
             md.text('Тип недвижимости: ', md.bold(object.property_type)),
             md.text('В рекламе: ', md.bold(object.advertising)),
             md.text('Телефон: ', (f"[{object.phone}](tel:{object.phone})")),
-            md.text('Дейтвительно до: ', (object.date_end.strftime("%d.%m.%Y, %H:%M:%S"))),
+            md.text('Дейтвительно до: ',
+                    (object.date_end.strftime("%d.%m.%Y, %H:%M:%S"))),
 
             sep='\n',
         )
-        
+
         objects.append([text, object_control_keyboard, contact_keybord])
-    
+
     return objects
-        
+
 
 @dp.callback_query_handler(Text(startswith="img_"))
 async def callback_extend_img(call: types.CallbackQuery):
@@ -507,7 +564,7 @@ async def function_my_objects(message: types.Message):
     id = message.chat.id
     with app.app_context():
         object = Objects.query.filter_by(user=id).all()
-    
+
     OBJECTS[id] = {'msg': []}
     for i in render_all_objects(object):
         msg = await bot.send_message(id, i[0], reply_markup=i[1], parse_mode=ParseMode.MARKDOWN)
@@ -523,7 +580,7 @@ async def callback_delete_my_object(call: types.CallbackQuery):
         await OBJECTS[call.message.chat.id]['current_object'].delete()
     except Exception as e:
         pass
-    
+
     try:
         # del rec DB
         with app.app_context():
@@ -546,7 +603,7 @@ async def callback_delete_my_object(call: types.CallbackQuery):
         del OBJECTS[call.message.chat.id]['object_list']
     except Exception as e:
         pass
-    
+
     with app.app_context():
         object = Objects.query.filter_by(user=call.message.chat.id).all()
         objects = render_all_objects(object)
@@ -569,6 +626,14 @@ async def callback_extend_my_object(call: types.CallbackQuery):
         await OBJECTS[call.message.chat.id]['current_object'].delete()
     except Exception as e:
         pass
+    
+    # rerender my object form
+    try:
+        for i in OBJECTS[call.message.chat.id]['msg']:
+            await i.delete()
+        del OBJECTS[call.message.chat.id]['msg']
+    except Exception as e:
+        pass
 
     # update rec DB
     with app.app_context():
@@ -579,13 +644,16 @@ async def callback_extend_my_object(call: types.CallbackQuery):
     try:
         del OBJECTS[call.message.chat.id]['current_object']
     except Exception as e:
-        pass
+        print(e)
+    
+    await bot.send_message(call.message.chat.id, "Объект продлен на 30 дней ⏳")
+
 
 @dp.callback_query_handler(Text(startswith="update_object_"))
 async def callback_update_my_object(call: types.CallbackQuery):
     """CALLBACK UPDATE OBJECT"""
     id = call.data.split('_')[-1]
-    
+
     # update menu
     update_keyboard = types.InlineKeyboardMarkup(
         resize_keyboard=True, selective=True)
@@ -623,90 +691,92 @@ async def callback_update_my_object(call: types.CallbackQuery):
 
     msg = await bot.send_message(call.message.chat.id, "Выберите пункт для обновления", reply_markup=update_keyboard)
     UPDATE[call.message.chat.id] = {'trash': msg}
-    
-    
+
+
 @dp.callback_query_handler(Text(startswith="update_"))
 async def callbacks_update(call: types.CallbackQuery):
     """CALLBACK UPDATE"""
-    
+
     id = call.data.split('_')[-1]
-    action = call.data.split('update_')[1].replace('my_', '').replace(f'_{id}', '')
+    action = call.data.split('update_')[1].replace(
+        'my_', '').replace(f'_{id}', '')
     type_ = call.data.split('_')[1]
-    
-    if action == 'advertising':
-         await bot.send_message(call.message.chat.id, "Для данного поля, вы должны ввести: 'Да' или 'Нет'" )
-    
-    print(id, action)
-    UPDATE[call.message.chat.id]['update'] = {'action': action, 'id': id, 'type': type_}
-    
-    await bot.send_message(call.message.chat.id, "Введите новое значение")
-    await updateData.data.set()
+
+    # отмена обновления
+    if action == 'cancel':
+        await call.message.answer('Ок', reply_markup=main_keyboard)
+    else:
+        if action == 'advertising':
+            await bot.send_message(call.message.chat.id, "Для данного поля, вы должны ввести: 'Да' или 'Нет'")
+
+        UPDATE[call.message.chat.id]['update'] = {
+            'action': action, 'id': id, 'type': type_}
+
+        await bot.send_message(call.message.chat.id, "Введите новое значение")
+        await updateData.data.set()
+
 
 @dp.message_handler(state=updateData.data)
 async def process_update(message: types.Message, state: FSMContext):
     """UPDATE PROCESS"""
-    
+
     try:
         await OBJECTS[message.chat.id]['current_object'].delete()
     except Exception as e:
         print(e)
-    
+
     try:
         await UPDATE[message.chat.id]['trash'].delete()
     except Exception as e:
         print(e)
-    
-    async with state.proxy() as data: 
+
+    async with state.proxy() as data:
         # update data in db
-        
+
         action = UPDATE[message.chat.id]['update']['action']
         id = UPDATE[message.chat.id]['update']['id']
         type_ = UPDATE[message.chat.id]['update']['type']
-        
+
         value = message.text
-        # if action == 'advertising':
-        #     if message.text.strip().upper() == 'ДA':
-        #         value = 'Да'
-        #     else:
-        #         value = 'Нет'
-        
-        print(action, id, type_)
+
         # SQL
         with app.app_context():
-            
+
             # update profile
             if type_ == 'my':
-                db.engine.execute(f"UPDATE users SET {action}='{value}' WHERE id={message.chat.id};")
+                db.engine.execute(
+                    f"UPDATE users SET {action}='{value}' WHERE id={message.chat.id};")
                 db.session.commit()
-            
+
             # update objects
             else:
-                db.engine.execute(f"UPDATE objects SET {action}='{value}' WHERE id={id};")
+                db.engine.execute(
+                    f"UPDATE objects SET {action}='{value}' WHERE id={id};")
                 db.session.commit()
-            
-                print('ok')
 
+                print('ok')
 
     # finish state
     await state.finish()
-    
+
     # render info objects
     if type_ != 'my':
         # reload object info
         with app.app_context():
-            object = Objects.query.filter_by(id=UPDATE[message.chat.id]['update']['id']).all()
+            object = Objects.query.filter_by(
+                id=UPDATE[message.chat.id]['update']['id']).all()
         text, object_control_keyboard, contact = render_all_objects(object)[0]
-        
+
         message_object_id = await bot.send_message(
-                message.chat.id,
-                text,
-                reply_markup=object_control_keyboard,
-                parse_mode=ParseMode.MARKDOWN,
-            )
+            message.chat.id,
+            text,
+            reply_markup=object_control_keyboard,
+            parse_mode=ParseMode.MARKDOWN,
+        )
         # save current object
-        
+
         OBJECTS[message.chat.id]['current_object'] = message_object_id
-    
+
     # render info profile
     else:
         with app.app_context():

@@ -32,7 +32,7 @@ class Users(db.Model):
 # DB model Objects
 class Objects(db.Model):
     id = db.Column(db.Integer(), primary_key=True)
-    user = db.Column(db.String(200), db.ForeignKey('users.id'), nullable=False)
+    user = db.Column(db.String(200), db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     region = db.Column(db.String(400), nullable=True)
     city = db.Column(db.String(400), nullable=True)
     area = db.Column(db.String(400), nullable=True)
@@ -47,6 +47,7 @@ class Objects(db.Model):
     number_of_storeys = db.Column(db.Integer(), nullable=True)
     phone = db.Column(db.String(200), nullable=True)
     advertising = db.Column(db.String(200), nullable=True)
+    
     date_end = db.Column(db.DateTime, nullable=False, default=datetime.now() + timedelta(days=30))
     datetime = db.Column(db.DateTime, nullable=False, default=datetime.now())
 
@@ -54,13 +55,9 @@ class Objects(db.Model):
 class AccessKeys(db.Model):
     id = db.Column(db.Integer(), primary_key=True)
     key = db.Column(db.String(400), nullable=True)
-    user = db.Column(db.String(200), db.ForeignKey('users.id'), nullable=True)
+    user = db.Column(db.String(200), db.ForeignKey('users.id', ondelete='CASCADE'), nullable=True)
     datetime = db.Column(db.DateTime, nullable=False, default=datetime.now())
     
-class UserAdmin(db.Model, UserMixin):
-    id = db.Column(db.Integer(), primary_key=True)
-    login = db.Column(db.String(128), nullable=False, unique=True)
-    password = db.Column(db.String(128), nullable=False)
 
 # DB model Chats
 class Chats(db.Model):
@@ -69,11 +66,18 @@ class Chats(db.Model):
     link = db.Column(db.String(200), nullable=True)
     datetime = db.Column(db.DateTime, nullable=False, default=datetime.now())
 
+
+class UserAdmin(db.Model, UserMixin):
+    id = db.Column(db.Integer(), primary_key=True)
+    login = db.Column(db.String(128), nullable=False, unique=True)
+    password = db.Column(db.String(128), nullable=False)
+    
 class Images(db.Model):
     id = db.Column(db.Integer(), primary_key=True)
-    object = db.Column(db.Integer(), db.ForeignKey('objects.id'), nullable=True)
+    object = db.Column(db.Integer(), db.ForeignKey('objects.id', ondelete='CASCADE'), nullable=True)
     image_path = db.Column(db.String(255), nullable=True)
     datetime = db.Column(db.DateTime, nullable=False, default=datetime.now())
+    
 
 with app.app_context():
     app.config['SESSION_TYPE'] = 'filesystem'

@@ -296,6 +296,7 @@ async def render_item(id, item):
                 f'{i}', callback_data=f'filter_region_{i}'))
 
         keyboard_items.add(*buttons)
+        keyboard_items.add(types.InlineKeyboardButton(f'Не выбрано', callback_data=f'filter_region_Не выбрано'))
 
         msg = await bot.send_message(id, config.OBJECT_TEXT['feed']['region_btn'], reply_markup=keyboard_items)
 
@@ -307,6 +308,7 @@ async def render_item(id, item):
                 f'{i}', callback_data=f'filter_city_{i}'))
 
         keyboard_items.add(*buttons)
+        keyboard_items.add(types.InlineKeyboardButton(f'Не выбрано', callback_data=f'filter_city_Не выбрано'))
 
         msg = await bot.send_message(id, config.OBJECT_TEXT['feed']['city_btn'], reply_markup=keyboard_items)
 
@@ -318,14 +320,16 @@ async def render_item(id, item):
                 f'{i}', callback_data=f'filter_area_{i}'))
 
         keyboard_items.add(*buttons)
-
+        keyboard_items.add(types.InlineKeyboardButton(f'Не выбрано', callback_data=f'filter_area_Не выбрано'))
+        
         msg = await bot.send_message(id, config.OBJECT_TEXT['feed']['area_btn'], reply_markup=keyboard_items)
         
     # all advertising by current city
     elif item == 'advertising':
 
         buttons = [types.InlineKeyboardButton(f'Да', callback_data=f'filter_advertising_Да'), 
-                           types.InlineKeyboardButton(f'Нет', callback_data=f'filter_advertising_Нет')]
+                           types.InlineKeyboardButton(f'Нет', callback_data=f'filter_advertising_Нет'),
+                           types.InlineKeyboardButton(f'Не выбрано', callback_data=f'filter_advertising_Не выбрано')]
 
         keyboard_items.add(*buttons)
 
@@ -338,6 +342,7 @@ async def render_item(id, item):
                 f'{i}', callback_data=f'filter_rooms_{i}'))
 
         keyboard_items.add(*buttons)
+        keyboard_items.add(types.InlineKeyboardButton(f'Не выбрано', callback_data=f'filter_rooms_Не выбрано'))
 
         msg = await bot.send_message(id, config.OBJECT_TEXT['feed']['rooms_btn'], reply_markup=keyboard_items)
 
