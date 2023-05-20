@@ -17,7 +17,7 @@ import aiogram.utils.markdown as md
 import datetime
 from yandex import get_data
 
-KEYS = ['key']
+KEYS = ['welcome']
 OBJECTS = {}
 FILTER = {}
 USER = {}
@@ -35,8 +35,8 @@ def current_print(text):
 
 def get_keys():
     with app.app_context():
-        return [i.key for i in AccessKeys.query.all()]
-        # return ['key']
+        # return [i.key for i in AccessKeys.query.all()]
+        return KEYS
 
 
 logging.basicConfig(level=logging.INFO)
@@ -263,10 +263,11 @@ async def process_city(message: types.Message, state: FSMContext):
             reply_markup=links,
         )
 
-        with app.app_context():
-            access_key = AccessKeys.query.filter_by(key=data['key']).first()
-            access_key.user = str(message.chat.id)
-            db.session.commit()
+        # save keys OFF
+        # with app.app_context():
+        #     access_key = AccessKeys.query.filter_by(key=data['key']).first()
+        #     access_key.user = str(message.chat.id)
+        #     db.session.commit()
 
     # finish state
     await state.finish()
