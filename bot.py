@@ -92,16 +92,24 @@ class updateData(StatesGroup):
 
 # ########################### REGISTRATION ###########################
 
+# main keyboard
+main_keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+main_keyboard.row(config.OBJECT_TEXT['main']['my_objects_btn'],
+                  config.OBJECT_TEXT['main']['my_settings'])
+
 
 @dp.message_handler(commands=['start'])
 async def process_start_command(message: types.Message):
     """START HANDLING"""
 
     # start fullname state
-    print(message.chat)
-    await userForm.fullname.set()
-    await bot.send_message(message.chat.id, config.OBJECT_TEXT['user']['start_registration'])
-    await bot.send_message(message.chat.id, config.OBJECT_TEXT['user']['enter_fullname'])
+    user = Users.query.filter_by(id=id).first()
+    if user == None:
+        await userForm.fullname.set()
+        await bot.send_message(message.chat.id, config.OBJECT_TEXT['user']['start_registration'])
+        await bot.send_message(message.chat.id, config.OBJECT_TEXT['user']['enter_fullname'])
+    else:
+        await bot.send_message(message.chat.id, 'Вы зарегистрированы', reply_markup=main_keyboard)
 
 
 @dp.message_handler(state=userForm.fullname)
@@ -275,11 +283,6 @@ async def process_city(message: types.Message, state: FSMContext):
     # send info about chat and bot
 
 # CHECK AUTH USER
-
-# main keyboard
-main_keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-main_keyboard.row(config.OBJECT_TEXT['main']['my_objects_btn'],
-                  config.OBJECT_TEXT['main']['my_settings'])
 
 
 def get_user_(id):
