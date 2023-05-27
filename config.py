@@ -1,6 +1,6 @@
 TOKEN_MY = '5587613900:AAHRY4crNMc25orZvf7AICjGT9qbgeUFiio'
 
-# TOKEN_MY = '5607756343:AAGx0e84fjqBtEI3DQUAEn34W6SAo97FAz8'
+# TOKEN_MY = '6032186285:AAE9Ifkh5M3gADpWw2DCcm19AB34YdFSL3w'
 
 TOKEN_SALE = '5514677557:AAFo5he1Uh-a08au1inmHfCS-52jFA8FCWA'
 
@@ -15,9 +15,9 @@ TOKEN_BUY = '5374603835:AAHzYkz6uqkU6ABhfa6vAVHfmxpZkZMDK9M'
 
 BUY_LINK = 'https://t.me/realtor_buy_bot'
 
-IMAGE_DIR = '/home/oleg/python/rBot/media'
+# IMAGE_DIR = '/home/oleg/python/rBot/media'
 
-# IMAGE_DIR = '/var/www/rBot/media'
+IMAGE_DIR = '/var/www/rBot/media'
 
 DB_HOST = 'localhost'
 DB_PORT = 3306
