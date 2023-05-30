@@ -103,13 +103,14 @@ async def process_start_command(message: types.Message):
     """START HANDLING"""
 
     # start fullname state
-    user = Users.query.filter_by(id=id).first()
-    if user == None:
-        await userForm.fullname.set()
-        await bot.send_message(message.chat.id, config.OBJECT_TEXT['user']['start_registration'])
-        await bot.send_message(message.chat.id, config.OBJECT_TEXT['user']['enter_fullname'])
-    else:
-        await bot.send_message(message.chat.id, 'Вы зарегистрированы', reply_markup=main_keyboard)
+    with app.app_context():
+        user = Users.query.filter_by(id=id).first()
+        if user == None:
+            await userForm.fullname.set()
+            await bot.send_message(message.chat.id, config.OBJECT_TEXT['user']['start_registration'])
+            await bot.send_message(message.chat.id, config.OBJECT_TEXT['user']['enter_fullname'])
+        else:
+            await bot.send_message(message.chat.id, 'Вы зарегистрированы', reply_markup=main_keyboard)
 
 
 @dp.message_handler(state=userForm.fullname)
